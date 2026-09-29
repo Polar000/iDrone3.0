@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:idrone/app/router/app_router.dart';
-import 'package:idrone/app/theme/app_theme.dart';
+import 'app/router/app_router.dart';
+import 'app/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

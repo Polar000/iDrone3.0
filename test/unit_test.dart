@@ -26,7 +26,6 @@ void main() {
 
   group('PricingEngineService Unit Tests', () {
     test('12.60 manzanas quote calculation (Q150/mz + Q100 travel)', () {
-      // 12.60 manzanas = 88060.896 m²
       const double areaM2 = 88060.896;
       final quote = PricingEngineService.calculateQuote(
         areaM2: areaM2,
