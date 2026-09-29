@@ -238,13 +238,15 @@ class _QuickServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 1,
+      color: AppColors.white,
+      elevation: 2,
+      shadowColor: AppColors.dark.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(14.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -258,13 +260,24 @@ class _QuickServiceCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 24),
               ),
               const SizedBox(height: 8),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.dark)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.dark,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.muted,
+                  height: 1.2,
+                ),
               ),
             ],
           ),
