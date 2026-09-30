@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/pricing_engine.dart';
+import '../../../core/services/work_duration_calculator.dart';
 import '../../fields/presentation/map_screen.dart';
 
 class BookingFlowScreen extends StatefulWidget {
@@ -25,47 +25,47 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _selectedTimeWindow = '08:00 AM - 11:00 AM';
 
-  String _paymentMethod = 'card'; // 'card', 'transfer', 'deposit'
+  String _paymentMethod = 'card';
   final TextEditingController _cardNumberController = TextEditingController(text: '4532 •••• •••• 8821');
   final TextEditingController _cardHolderController = TextEditingController(text: 'Bryan Orellana');
   final TextEditingController _transferRefController = TextEditingController();
+  final TextEditingController _couponController = TextEditingController();
+
+  double _discountAmount = 0.0;
+  String? _couponMessage;
 
   final List<Map<String, String>> _services = [
     {
       'title': 'Fumigación',
       'desc': 'Aplicación precisa y uniforme de agroquímicos.',
-      'icon': 'spray',
       'price': 'Q150/manzana',
     },
     {
       'title': 'Fertilización foliar',
       'desc': 'Mejora la nutrición y rendimiento de tus cultivos.',
-      'icon': 'water_drop',
       'price': 'Q175/manzana',
     },
     {
       'title': 'Esparcimiento de granulados',
       'desc': 'Distribución eficiente de sólidos y semillas.',
-      'icon': 'grain',
       'price': 'Q160/manzana',
     },
     {
       'title': 'Monitoreo agrícola',
       'desc': 'Conoce mejor el estado multiespectral de tu campo.',
-      'icon': 'camera',
       'price': 'Q120/manzana',
     },
   ];
 
   final List<Map<String, String>> _crops = [
-    {'name': 'Maíz', 'icon': 'corn'},
-    {'name': 'Melón', 'icon': 'melon'},
-    {'name': 'Caña de azúcar', 'icon': 'grass'},
-    {'name': 'Pastos', 'icon': 'eco'},
-    {'name': 'Café', 'icon': 'coffee'},
-    {'name': 'Tomate', 'icon': 'tomato'},
-    {'name': 'Hortalizas', 'icon': 'vegetables'},
-    {'name': 'Otros', 'icon': 'more'},
+    {'name': 'Maíz'},
+    {'name': 'Melón'},
+    {'name': 'Caña de azúcar'},
+    {'name': 'Pastos'},
+    {'name': 'Café'},
+    {'name': 'Tomate'},
+    {'name': 'Hortalizas'},
+    {'name': 'Otros'},
   ];
 
   final List<String> _timeWindows = [
@@ -74,11 +74,20 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     '01:00 PM - 04:00 PM',
   ];
 
+  final List<String> _stepTitles = [
+    'Servicio',
+    'Cultivo',
+    'Parcela',
+    'Horario',
+    'Resumen & Pago',
+  ];
+
   @override
   void dispose() {
     _cardNumberController.dispose();
     _cardHolderController.dispose();
     _transferRefController.dispose();
+    _couponController.dispose();
     super.dispose();
   }
 
@@ -109,31 +118,100 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     }
   }
 
+  void _applyCoupon() {
+    final code = _couponController.text.trim().toUpperCase();
+    if (code == 'IDRONE2026' || code == 'PRIMERASERVICIO') {
+      setState(() {
+        _discountAmount = 100.0;
+        _couponMessage = '¡Cupón aplicado exitosamente! -Q100.00';
+      });
+    } else if (code.isEmpty) {
+      setState(() {
+        _discountAmount = 0.0;
+        _couponMessage = null;
+      });
+    } else {
+      setState(() {
+        _discountAmount = 0.0;
+        _couponMessage = 'Cupón no válido o expirado.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final quote = PricingEngineService.calculateQuote(
       areaM2: _areaM2,
       pricePerManzana: _getServiceRate(),
       travelFee: 100.0,
+      discount: _discountAmount,
+    );
+
+    final durationResult = WorkDurationCalculator.calculateDuration(
+      areaM2: _areaM2,
+      serviceType: _selectedService,
     );
 
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: Text('Paso ${_currentStep + 1} de 5'),
+        title: const Text('Solicitar Servicio iDrone'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: List.generate(5, (index) {
+                final isCompleted = index < _currentStep;
+                final isCurrent = index == _currentStep;
+                return Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isCompleted
+                                ? AppColors.emerald
+                                : isCurrent
+                                    ? AppColors.freshGreen
+                                    : AppColors.softGreen,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                      if (index < 4) const SizedBox(width: 4),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            LinearProgressIndicator(
-              value: (_currentStep + 1) / 5.0,
-              backgroundColor: AppColors.softGreen,
-              color: AppColors.emerald,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Paso ${_currentStep + 1}: ${_stepTitles[_currentStep]}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.deepForest),
+                  ),
+                  Text(
+                    'Paso ${_currentStep + 1} de 5',
+                    style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: _buildStepContent(quote),
+                child: _buildStepContent(quote, durationResult),
               ),
             ),
             Container(
@@ -159,7 +237,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                         if (_currentStep < 4) {
                           setState(() => _currentStep++);
                         } else {
-                          _confirmBooking(quote);
+                          _confirmBooking(quote, durationResult);
                         }
                       },
                       child: Text(_currentStep == 4 ? 'Pagar Anticipo (Q${quote.depositAmount.toStringAsFixed(2)})' : 'Siguiente'),
@@ -174,18 +252,18 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  Widget _buildStepContent(QuoteCalculation quote) {
+  Widget _buildStepContent(QuoteCalculation quote, WorkDurationResult durationResult) {
     switch (_currentStep) {
       case 0:
         return _buildServiceSelectionStep();
       case 1:
         return _buildCropSelectionStep();
       case 2:
-        return _buildParcelStep();
+        return _buildParcelStep(durationResult);
       case 3:
-        return _buildScheduleStep();
+        return _buildScheduleStep(durationResult);
       case 4:
-        return _buildQuoteSummaryStep(quote);
+        return _buildQuoteSummaryStep(quote, durationResult);
       default:
         return const SizedBox();
     }
@@ -305,7 +383,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  Widget _buildParcelStep() {
+  Widget _buildParcelStep(WorkDurationResult durationResult) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,11 +393,50 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         const SizedBox(height: 20),
 
         Card(
-          child: ListTile(
-            leading: const Icon(Icons.landscape_rounded, color: AppColors.deepForest),
-            title: Text('Parcela Seleccionada: $_selectedParcel'),
-            subtitle: Text('Finca: $_selectedFarm • ${(QuoteCalculation(areaM2: _areaM2, areaManzanas: _areaM2 / 6988.96, areaHectares: _areaM2 / 10000, pricePerManzana: 150, subtotal: 0, travelFee: 0, discount: 0, total: 0, depositPercentage: 25, depositAmount: 0, balanceAmount: 0).areaManzanas).toStringAsFixed(2)} manzanas'),
-            trailing: const Icon(Icons.check_circle_rounded, color: AppColors.emerald),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.landscape_rounded, color: AppColors.deepForest, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Parcela Seleccionada: $_selectedParcel', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text('Finca: $_selectedFarm', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.check_circle_rounded, color: AppColors.emerald, size: 24),
+                  ],
+                ),
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Área Calculada', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                        Text('${(QuoteCalculation(areaM2: _areaM2, areaManzanas: _areaM2 / 6988.96, areaHectares: _areaM2 / 10000, pricePerManzana: 150, subtotal: 0, travelFee: 0, discount: 0, total: 0, depositPercentage: 25, depositAmount: 0, balanceAmount: 0).areaManzanas).toStringAsFixed(2)} mz', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.deepForest)),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('Tiempo Est. Vuelo', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                        Text(durationResult.formattedTotalTime, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.emerald)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -350,7 +467,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  Widget _buildScheduleStep() {
+  Widget _buildScheduleStep(WorkDurationResult durationResult) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -358,6 +475,39 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         const SizedBox(height: 6),
         const Text('Horarios disponibles según ventana operativa en tu zona.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
         const SizedBox(height: 20),
+
+        // Calculated Operational Duration Banner
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.softGreen,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.timer_rounded, color: AppColors.emerald, size: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tiempo estimado de trabajo: ${durationResult.formattedTotalTime}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.deepForest),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Vuelo: ${durationResult.flightMinutes.toStringAsFixed(0)} min • Recambio de baterías: ${durationResult.batterySwaps} (${durationResult.batterySwaps * 5} min) • Calibración: 15 min',
+                      style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
 
         Card(
           child: ListTile(
@@ -401,7 +551,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  Widget _buildQuoteSummaryStep(QuoteCalculation quote) {
+  Widget _buildQuoteSummaryStep(QuoteCalculation quote, WorkDurationResult durationResult) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -410,17 +560,28 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         const Text('Revisa la cotización y selecciona tu método de pago.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
         const SizedBox(height: 20),
 
+        // Receipt/Ticket styled card
         Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 3,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text('BOLETA DE COTIZACIÓN', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 1, color: AppColors.deepForest)),
+                    Text('iDrone Guatemala', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.emerald)),
+                  ],
+                ),
+                const Divider(height: 20),
                 _buildSummaryRow('Servicio', _selectedService, isBold: true),
                 _buildSummaryRow('Cultivo', _selectedCrop),
                 _buildSummaryRow('Finca / Parcela', '$_selectedFarm / $_selectedParcel'),
-                _buildSummaryRow('Área', '${quote.areaManzanas.toStringAsFixed(2)} manzanas (${quote.areaHectares.toStringAsFixed(2)} ha)'),
-                _buildSummaryRow('Precio unitario', 'Q${quote.pricePerManzana.toStringAsFixed(2)} / manzana'),
+                _buildSummaryRow('Área', '${quote.areaManzanas.toStringAsFixed(2)} mz (${quote.areaHectares.toStringAsFixed(2)} ha)'),
+                _buildSummaryRow('Duración Estimada', durationResult.formattedTotalTime, color: AppColors.emerald, isBold: true),
+                _buildSummaryRow('Precio unitario', 'Q${quote.pricePerManzana.toStringAsFixed(2)} / mz'),
                 const Divider(height: 24),
                 _buildSummaryRow('Subtotal', 'Q${quote.subtotal.toStringAsFixed(2)}'),
                 _buildSummaryRow('Movilización (Zona Jutiapa)', 'Q${quote.travelFee.toStringAsFixed(2)}'),
@@ -446,6 +607,59 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+
+        // Coupon code card
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('¿Tienes un cupón de descuento?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.dark)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _couponController,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          hintText: 'Ej. IDRONE2026',
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _applyCoupon,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.emerald,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      child: const Text('Aplicar'),
+                    ),
+                  ],
+                ),
+                if (_couponMessage != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _couponMessage!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: _discountAmount > 0 ? AppColors.emerald : Colors.red,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+
         const SizedBox(height: 20),
         const Text('Método de Pago del Anticipo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.deepForest)),
         const SizedBox(height: 12),
@@ -552,7 +766,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  void _confirmBooking(QuoteCalculation quote) {
+  void _confirmBooking(QuoteCalculation quote, WorkDurationResult durationResult) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -575,11 +789,29 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             const Text('Servicio Reservado con Éxito', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.deepForest)),
             const SizedBox(height: 8),
             Text(
-              'Hemos registrado tu anticipo de Q${quote.depositAmount.toStringAsFixed(2)}. Nuestro operador se pondrá en contacto pronto.',
+              'Hemos registrado tu anticipo de Q${quote.depositAmount.toStringAsFixed(2)}. Tiempo estimado de trabajo: ${durationResult.formattedTotalTime}.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.muted, fontSize: 13),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            // Simulated QR Ticket
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.softGreen, width: 2),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.qr_code_2_rounded, size: 40, color: AppColors.deepForest),
+                  SizedBox(width: 12),
+                  Text('TICKET #IDR-88421\nValidador Digital', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.dark)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

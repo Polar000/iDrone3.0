@@ -35,6 +35,41 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
+          // Operational Zone Distribution / Heatmap Card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('Cobertura Operativa y Densidad por Zona', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.deepForest)),
+                      Chip(
+                        label: Text('Oriente GT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepForest)),
+                        backgroundColor: AppColors.softGreen,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _ZoneHeatTile(zoneName: 'Jutiapa', areaMz: '185.0 mz', intensity: 0.9, activeDrones: 3),
+                      const SizedBox(width: 12),
+                      _ZoneHeatTile(zoneName: 'Moyuta', areaMz: '112.5 mz', intensity: 0.65, activeDrones: 2),
+                      const SizedBox(width: 12),
+                      _ZoneHeatTile(zoneName: 'Pasaco', areaMz: '75.0 mz', intensity: 0.45, activeDrones: 1),
+                      const SizedBox(width: 12),
+                      _ZoneHeatTile(zoneName: 'Jalpatagua', areaMz: '40.0 mz', intensity: 0.25, activeDrones: 1),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           Row(
             children: [
               Expanded(
@@ -104,6 +139,50 @@ class _MetricCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.dark)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ZoneHeatTile extends StatelessWidget {
+  final String zoneName;
+  final String areaMz;
+  final double intensity;
+  final int activeDrones;
+
+  const _ZoneHeatTile({
+    required this.zoneName,
+    required this.areaMz,
+    required this.intensity,
+    required this.activeDrones,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.emerald.withValues(alpha: intensity * 0.25 + 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.emerald.withValues(alpha: intensity)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(zoneName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.deepForest)),
+            const SizedBox(height: 4),
+            Text(areaMz, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.dark)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.flight_rounded, size: 14, color: AppColors.forest),
+                const SizedBox(width: 4),
+                Text('$activeDrones drones', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+              ],
+            ),
           ],
         ),
       ),

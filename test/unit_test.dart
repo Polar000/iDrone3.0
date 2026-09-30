@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:idrone/core/utils/area_converter.dart';
 import 'package:idrone/core/services/pricing_engine.dart';
+import 'package:idrone/core/services/work_duration_calculator.dart';
 
 void main() {
   group('AreaConverter Unit Tests', () {
@@ -53,6 +54,32 @@ void main() {
       expect(quote.total, equals(0.0));
       expect(quote.depositAmount, equals(0.0));
       expect(quote.balanceAmount, equals(0.0));
+    });
+  });
+
+  group('WorkDurationCalculator Unit Tests', () {
+    test('12.60 manzanas fumigation work duration calculation', () {
+      final double areaM2 = AreaConverter.manzanasToSquareMeters(12.60);
+      final result = WorkDurationCalculator.calculateDuration(
+        areaM2: areaM2,
+        serviceType: 'fumigation',
+      );
+
+      expect(result.flightMinutes, closeTo(18.9, 0.5));
+      expect(result.batterySwaps, equals(3));
+      expect(result.setupMinutes, equals(15.0));
+      expect(result.totalMinutes, closeTo(48.9, 1.0));
+      expect(result.formattedTotalTime, contains('min'));
+    });
+
+    test('Zero area duration returns zero', () {
+      final result = WorkDurationCalculator.calculateDuration(
+        areaM2: 0.0,
+        serviceType: 'fumigation',
+      );
+
+      expect(result.totalMinutes, equals(0.0));
+      expect(result.batterySwaps, equals(0));
     });
   });
 }

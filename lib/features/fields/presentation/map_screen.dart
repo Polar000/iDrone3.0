@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
+import '../../../core/services/work_duration_calculator.dart';
 
 class MapScreen extends StatefulWidget {
   final bool isSelectionMode;
@@ -25,6 +26,7 @@ class _MapScreenState extends State<MapScreen> {
   final TextEditingController _parcelNameController = TextEditingController(text: 'Nueva Parcela');
   bool _isSatellite = true;
   bool _showExistingParcels = true;
+  bool _showNdviOverlay = false;
 
   final List<LatLng> _polygonPoints = [];
 
@@ -85,6 +87,17 @@ class _MapScreenState extends State<MapScreen> {
     return area.abs();
   }
 
+  double _calculatePolygonPerimeterMeters(List<LatLng> points) {
+    if (points.length < 2) return 0.0;
+    const Distance distance = Distance();
+    double total = 0.0;
+    for (int i = 0; i < points.length; i++) {
+      final next = (i + 1) % points.length;
+      total += distance.as(LengthUnit.Meter, points[i], points[next]);
+    }
+    return total;
+  }
+
   void _onMapTap(TapPosition tapPosition, LatLng point) {
     setState(() {
       _polygonPoints.add(point);
@@ -108,13 +121,30 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final currentAreaM2 = _calculatePolygonAreaM2(_polygonPoints);
+    final currentPerimeterMeters = _calculatePolygonPerimeterMeters(_polygonPoints);
     final areaManzanas = AreaConverter.squareMetersToManzanas(currentAreaM2);
     final areaHectares = AreaConverter.squareMetersToHectares(currentAreaM2);
+    final durationResult = WorkDurationCalculator.calculateDuration(
+      areaM2: currentAreaM2,
+      serviceType: 'fumigation',
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isSelectionMode ? 'Dibujar Parcela' : 'Mapa de Fincas y Parcelas'),
         actions: [
+          IconButton(
+            icon: Icon(
+              _showNdviOverlay ? Icons.eco_rounded : Icons.eco_outlined,
+              color: _showNdviOverlay ? AppColors.freshGreen : null,
+            ),
+            tooltip: _showNdviOverlay ? 'Desactivar Capa NDVI' : 'Activar Capa NDVI (Salud Vegetal)',
+            onPressed: () {
+              setState(() {
+                _showNdviOverlay = !_showNdviOverlay;
+              });
+            },
+          ),
           IconButton(
             icon: Icon(_showExistingParcels ? Icons.layers_rounded : Icons.layers_clear_rounded),
             tooltip: _showExistingParcels ? 'Ocultar parcelas guardadas' : 'Mostrar parcelas guardadas',
@@ -156,15 +186,19 @@ class _MapScreenState extends State<MapScreen> {
                   if (_showExistingParcels)
                     ..._existingParcels.map((parcel) => Polygon(
                           points: parcel['points'] as List<LatLng>,
-                          color: AppColors.forest.withValues(alpha: 0.35),
-                          borderColor: AppColors.freshGreen,
+                          color: _showNdviOverlay
+                              ? Colors.green.withValues(alpha: 0.6)
+                              : AppColors.forest.withValues(alpha: 0.35),
+                          borderColor: _showNdviOverlay ? Colors.limeAccent : AppColors.freshGreen,
                           borderStrokeWidth: 2.5,
                           isFilled: true,
                         )),
                   if (_polygonPoints.length >= 3)
                     Polygon(
                       points: _polygonPoints,
-                      color: AppColors.freshGreen.withValues(alpha: 0.4),
+                      color: _showNdviOverlay
+                          ? Colors.lightGreenAccent.withValues(alpha: 0.5)
+                          : AppColors.freshGreen.withValues(alpha: 0.4),
                       borderColor: AppColors.lime,
                       borderStrokeWidth: 3.0,
                       isFilled: true,
@@ -251,23 +285,51 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             top: 16,
             left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.dark.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.gps_fixed_rounded, color: AppColors.freshGreen, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    'GPS: Lat 14.2818° N, Lon 89.8953° W',
-                    style: const TextStyle(color: AppColors.cream, fontSize: 11, fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.dark.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.gps_fixed_rounded, color: AppColors.freshGreen, size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'GPS: Lat 14.2818° N, Lon 89.8953° W',
+                        style: TextStyle(color: AppColors.cream, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_showNdviOverlay) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.deepForest.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.freshGreen),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.eco_rounded, color: AppColors.freshGreen, size: 14),
+                        SizedBox(width: 6),
+                        Text(
+                          'Capa NDVI Activa: Índice 0.78 (Salud Óptima)',
+                          style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
 
@@ -334,6 +396,13 @@ class _MapScreenState extends State<MapScreen> {
                             '(${areaHectares.toStringAsFixed(2)} ha • ${currentAreaM2.toStringAsFixed(0)} m²)',
                             style: const TextStyle(color: AppColors.muted, fontSize: 11),
                           ),
+                          if (_polygonPoints.length >= 3) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Perímetro: ${currentPerimeterMeters.toStringAsFixed(0)}m • Est. Vuelo: ~${durationResult.formattedTotalTime}',
+                              style: const TextStyle(color: AppColors.emerald, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ],
                       ),
                       if (_polygonPoints.isNotEmpty)
@@ -374,7 +443,7 @@ class _MapScreenState extends State<MapScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'Parcela "$name" guardada con ${areaManzanas.toStringAsFixed(2)} manzanas.',
+                                      'Parcela "$name" guardada con ${areaManzanas.toStringAsFixed(2)} manzanas (~${durationResult.formattedTotalTime} de vuelo).',
                                     ),
                                   ),
                                 );

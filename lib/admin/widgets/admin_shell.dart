@@ -13,6 +13,7 @@ class AdminShell extends StatefulWidget {
 
 class _AdminShellState extends State<AdminShell> {
   bool _isSidebarExpanded = true;
+  bool _isAdminDarkMode = false;
 
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Dashboard', 'icon': Icons.dashboard_rounded, 'route': '/admin'},
@@ -35,9 +36,12 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final String currentRoute = GoRouterState.of(context).uri.toString();
+    final bgColor = _isAdminDarkMode ? AppColors.dark : AppColors.cream;
+    final headerColor = _isAdminDarkMode ? const Color(0xFF1E293B) : AppColors.white;
+    final textColor = _isAdminDarkMode ? AppColors.white : AppColors.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: bgColor,
       body: Row(
         children: [
           AnimatedContainer(
@@ -129,20 +133,26 @@ class _AdminShellState extends State<AdminShell> {
                 Container(
                   height: 60,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  color: AppColors.white,
+                  color: headerColor,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Panel de Administración y Control Operational', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.dark)),
+                      Text('Panel de Control Operacional', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
                       Row(
-                        children: const [
-                          CircleAvatar(
+                        children: [
+                          IconButton(
+                            icon: Icon(_isAdminDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: AppColors.emerald),
+                            tooltip: _isAdminDarkMode ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro',
+                            onPressed: () => setState(() => _isAdminDarkMode = !_isAdminDarkMode),
+                          ),
+                          const SizedBox(width: 12),
+                          const CircleAvatar(
                             radius: 16,
                             backgroundColor: AppColors.deepForest,
                             child: Text('SA', style: TextStyle(color: AppColors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
-                          SizedBox(width: 8),
-                          Text('Super Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(width: 8),
+                          Text('Super Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
                         ],
                       ),
                     ],

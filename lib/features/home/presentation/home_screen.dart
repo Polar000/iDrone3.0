@@ -15,6 +15,7 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -57,8 +58,76 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
+              // Weather & Operational Flight Conditions Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.softGreen, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.dark.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.softGreen,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.wb_sunny_rounded, color: Colors.amber, size: 26),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Text(
+                                'Jutiapa • 28°C',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.dark),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.air_rounded, size: 14, color: AppColors.muted),
+                              SizedBox(width: 2),
+                              Text('12 km/h NE', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Condiciones de vuelo: Óptimas para aplicación',
+                            style: TextStyle(fontSize: 11, color: AppColors.forest, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'VUELO OK',
+                        style: TextStyle(color: AppColors.emerald, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Main Hero Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
@@ -96,7 +165,7 @@ class HomeScreen extends StatelessWidget {
                               Icon(Icons.radar_rounded, color: AppColors.freshGreen, size: 14),
                               SizedBox(width: 6),
                               Text(
-                                'Drones Activos • Zona Oriente',
+                                'Drones Activos • Radar en Vivo',
                                 style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -127,7 +196,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Servicios de fumigación y mapeo de precisión en Guatemala con telemetría en tiempo real.',
+                      'Servicios de fumigación y mapeo de precisión en Guatemala con telemetría y cálculo exacto de tiempo.',
                       style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.3),
                     ),
                     const SizedBox(height: 20),
@@ -250,7 +319,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Programado: Mañana, 08:00 AM',
+                                'Programado: Mañana, 08:00 AM • ~49 min',
                                 style: TextStyle(
                                   color: AppColors.deepForest,
                                   fontWeight: FontWeight.bold,
