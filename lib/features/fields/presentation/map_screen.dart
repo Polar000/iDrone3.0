@@ -249,118 +249,145 @@ class _MapScreenState extends State<MapScreen> {
           ),
 
           Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.dark.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.gps_fixed_rounded, color: AppColors.freshGreen, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'GPS: Lat 14.2818° N, Lon 89.8953° W',
+                    style: const TextStyle(color: AppColors.cream, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          Positioned(
             left: 16,
             right: 16,
             bottom: 20,
-            child: Card(
-              elevation: 8,
-              color: AppColors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_polygonPoints.length >= 3) ...[
-                      TextField(
-                        controller: _parcelNameController,
-                        style: const TextStyle(color: AppColors.dark, fontWeight: FontWeight.bold),
-                        decoration: InputDecoration(
-                          labelText: 'Nombre de la parcela',
-                          labelStyle: const TextStyle(color: AppColors.deepForest),
-                          prefixIcon: const Icon(Icons.edit_location_alt_outlined, color: AppColors.emerald),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.borderLight),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.emerald, width: 2),
-                          ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 4)),
+                ],
+                border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3), width: 1.5),
+              ),
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_polygonPoints.length >= 3) ...[
+                    TextField(
+                      controller: _parcelNameController,
+                      style: const TextStyle(color: AppColors.dark, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        labelText: 'Nombre de la parcela',
+                        labelStyle: const TextStyle(color: AppColors.deepForest),
+                        prefixIcon: const Icon(Icons.edit_location_alt_outlined, color: AppColors.emerald),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.borderLight),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.emerald, width: 2),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Área en Tiempo Real',
+                            style: TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${areaManzanas.toStringAsFixed(2)} manzanas',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.extrabold,
+                              color: AppColors.deepForest,
+                            ),
+                          ),
+                          Text(
+                            '(${areaHectares.toStringAsFixed(2)} ha • ${currentAreaM2.toStringAsFixed(0)} m²)',
+                            style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                      if (_polygonPoints.isNotEmpty)
+                        Row(
                           children: [
-                            const Text(
-                              'Área seleccionada',
-                              style: TextStyle(color: AppColors.muted, fontSize: 12),
+                            IconButton(
+                              icon: const Icon(Icons.undo_rounded, color: AppColors.dark),
+                              tooltip: 'Deshacer punto',
+                              onPressed: _undoLastVertex,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${areaManzanas.toStringAsFixed(2)} manzanas',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.deepForest,
-                              ),
-                            ),
-                            Text(
-                              '(${areaHectares.toStringAsFixed(2)} hectáreas • ${currentAreaM2.toStringAsFixed(0)} m²)',
-                              style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                              tooltip: 'Limpiar mapa',
+                              onPressed: _clearPolygon,
                             ),
                           ],
                         ),
-                        if (_polygonPoints.isNotEmpty)
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.undo_rounded, color: AppColors.dark),
-                                tooltip: 'Deshacer punto',
-                                onPressed: _undoLastVertex,
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                tooltip: 'Limpiar mapa',
-                                onPressed: _clearPolygon,
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _polygonPoints.length >= 3 ? AppColors.emerald : AppColors.muted,
-                          foregroundColor: AppColors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: _polygonPoints.length >= 3
-                            ? () {
-                                final name = _parcelNameController.text.trim().isEmpty
-                                    ? 'Nueva Parcela'
-                                    : _parcelNameController.text.trim();
-                                if (widget.onPolygonSaved != null) {
-                                  widget.onPolygonSaved!(_polygonPoints, currentAreaM2, name);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Parcela "$name" guardada con ${areaManzanas.toStringAsFixed(2)} manzanas.',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              }
-                            : null,
-                        icon: const Icon(Icons.check_circle_outline_rounded),
-                        label: Text(_polygonPoints.length < 3
-                            ? 'Toca el mapa para agregar puntos (mín. 3)'
-                            : 'Guardar Parcela'),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _polygonPoints.length >= 3 ? AppColors.emerald : AppColors.muted,
+                        foregroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
+                      onPressed: _polygonPoints.length >= 3
+                          ? () {
+                              final name = _parcelNameController.text.trim().isEmpty
+                                  ? 'Nueva Parcela'
+                                  : _parcelNameController.text.trim();
+                              if (widget.onPolygonSaved != null) {
+                                widget.onPolygonSaved!(_polygonPoints, currentAreaM2, name);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Parcela "$name" guardada con ${areaManzanas.toStringAsFixed(2)} manzanas.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          : null,
+                      icon: const Icon(Icons.check_circle_outline_rounded),
+                      label: Text(_polygonPoints.length < 3
+                          ? 'Toca el mapa para agregar puntos (mín. 3)'
+                          : 'Guardar Parcela'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

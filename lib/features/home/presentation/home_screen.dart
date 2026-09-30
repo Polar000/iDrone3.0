@@ -61,62 +61,89 @@ class HomeScreen extends StatelessWidget {
 
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.deepForest, AppColors.dark],
+                    colors: [Color(0xFF063F35), Color(0xFF0F2922), Color(0xFF172033)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.3), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.deepForest.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      color: AppColors.deepForest.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.freshGreen.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'iDrone Guatemala',
-                        style: TextStyle(color: AppColors.freshGreen, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.freshGreen.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            children: const [
+                              Icon(Icons.radar_rounded, color: AppColors.freshGreen, size: 14),
+                              SizedBox(width: 6),
+                              Text(
+                                'Drones Activos • Zona Oriente',
+                                style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'v2.0 Tech',
+                            style: TextStyle(color: AppColors.cream, fontSize: 10, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     const Text(
                       'Tu campo, en buenas manos.',
                       style: TextStyle(
                         color: AppColors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        fontWeight: FontWeight.extrabold,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Servicios agrícolas de precisión cuando los necesitas.',
-                      style: TextStyle(color: AppColors.cream, fontSize: 13),
+                      'Servicios de fumigación y mapeo de precisión en Guatemala con telemetría en tiempo real.',
+                      style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.3),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
+                      height: 48,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.freshGreen,
                           foregroundColor: AppColors.dark,
-                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 3,
                         ),
                         onPressed: () => context.push('/booking/flow'),
-                        icon: const Icon(Icons.add_location_alt_rounded),
-                        label: const Text('Solicitar servicio', style: TextStyle(fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.flight_takeoff_rounded, size: 20),
+                        label: const Text('Solicitar servicio de precisión', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
                     ),
                   ],
