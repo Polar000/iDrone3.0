@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/services/app_media_service.dart';
 
@@ -38,17 +40,18 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
                 children: const [
                   Text('Gestión Dinámica de Medios y Assets', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.deepForest)),
                   SizedBox(height: 4),
-                  Text('Modifica las URLs de imágenes en la base de datos para actualizar la app sin recompilar.', style: TextStyle(color: AppColors.muted)),
+                  Text('Sube imágenes directamente desde tu equipo o edita URLs almacenadas en la base de datos.', style: TextStyle(color: AppColors.muted)),
                 ],
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.emerald,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 onPressed: () => _showAddMediaDialog(context),
                 icon: const Icon(Icons.add_photo_alternate_rounded, color: AppColors.white),
-                label: const Text('Registrar Nuevo Asset', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+                label: const Text('Registrar / Subir Nuevo Asset', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -83,21 +86,15 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
                   return Row(
                     children: [
                       Container(
-                        width: 60,
-                        height: 60,
+                        width: 65,
+                        height: 65,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           color: AppColors.cream,
                           border: Border.all(color: AppColors.borderLight),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: Image.asset(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.broken_image_rounded, color: AppColors.muted);
-                          },
-                        ),
+                        child: _buildMediaPreview(url),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -106,13 +103,23 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
                           children: [
                             Text(key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.dark)),
                             const SizedBox(height: 2),
-                            Text(url, style: const TextStyle(color: AppColors.muted, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(
+                              url.startsWith('data:image') ? 'Data URL (Imagen Local Base64 Cargada)' : url,
+                              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
                       IconButton(
+                        icon: const Icon(Icons.drive_folder_upload_rounded, color: AppColors.forest),
+                        tooltip: 'Cargar Archivo desde el Equipo',
+                        onPressed: () => _pickAndUploadLocalFile(key),
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.edit_rounded, color: AppColors.emerald),
-                        tooltip: 'Editar URL en Base de Datos',
+                        tooltip: 'Editar URL manualmente',
                         onPressed: () => _showEditDialog(context, key, url),
                       ),
                     ],
@@ -124,6 +131,48 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMediaPreview(String url) {
+    if (url.startsWith('data:image')) {
+      try {
+        final base64Str = url.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(bytes, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, color: AppColors.muted));
+      } catch (e) {
+        return const Icon(Icons.broken_image_rounded, color: AppColors.muted);
+      }
+    } else if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, color: AppColors.muted));
+    } else {
+      return Image.asset(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, color: AppColors.muted));
+    }
+  }
+
+  Future<void> _pickAndUploadLocalFile(String key) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      if (file.bytes != null) {
+        final ext = file.extension ?? 'png';
+        final base64String = base64Encode(file.bytes!);
+        final dataUrl = 'data:image/$ext;base64,$base64String';
+
+        _mediaService.updateMediaRecord(key, dataUrl);
+        setState(() {});
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('¡Imagen "${file.name}" cargada desde tu equipo para el asset "$key"!'),
+            backgroundColor: AppColors.emerald,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildCategoryChip(String id, String label) {
@@ -153,12 +202,31 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Editar Asset "$key"'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'URL o Path de la imagen en Supabase Storage',
-            border: OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'URL o Path de la imagen (HTTP, Data URL o Asset local)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.emerald),
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                await _pickAndUploadLocalFile(key);
+              },
+              icon: const Icon(Icons.upload_file_rounded, color: AppColors.emerald),
+              label: const Text('Cargar Archivo desde mi Equipo', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
@@ -168,7 +236,7 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
               setState(() {});
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Asset "$key" actualizado en base de datos.')),
+                SnackBar(content: Text('Asset "$key" actualizado en la base de datos.')),
               );
             },
             child: const Text('Guardar'),
@@ -181,37 +249,72 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
   void _showAddMediaDialog(BuildContext context) {
     final keyController = TextEditingController();
     final urlController = TextEditingController();
+    String? selectedDataUrl;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Registrar Nuevo Asset'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: keyController,
-              decoration: const InputDecoration(labelText: 'Clave del Asset (ej. hero_promo_summer)'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Registrar / Subir Nuevo Asset'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: keyController,
+                  decoration: const InputDecoration(labelText: 'Clave del Asset (ej. hero_summer_2026)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: urlController,
+                  decoration: const InputDecoration(labelText: 'URL / Path de Supabase Storage'),
+                ),
+                const SizedBox(height: 14),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.forest,
+                    foregroundColor: AppColors.white,
+                  ),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                      withData: true,
+                    );
+                    if (result != null && result.files.isNotEmpty) {
+                      final file = result.files.first;
+                      if (file.bytes != null) {
+                        final ext = file.extension ?? 'png';
+                        final base64Str = base64Encode(file.bytes!);
+                        selectedDataUrl = 'data:image/$ext;base64,$base64Str';
+                        urlController.text = selectedDataUrl!;
+                        setDialogState(() {});
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.folder_open_rounded),
+                  label: const Text('Seleccionar Archivo de mi Equipo'),
+                ),
+                if (selectedDataUrl != null) ...[
+                  const SizedBox(height: 8),
+                  const Text('✓ Archivo local cargado con éxito', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold, fontSize: 12)),
+                ],
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(labelText: 'URL / Path Supabase Storage'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () {
-              if (keyController.text.isNotEmpty && urlController.text.isNotEmpty) {
-                _mediaService.updateMediaRecord(keyController.text.trim(), urlController.text.trim());
-                setState(() {});
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Registrar'),
-          ),
-        ],
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+              ElevatedButton(
+                onPressed: () {
+                  if (keyController.text.isNotEmpty && urlController.text.isNotEmpty) {
+                    _mediaService.updateMediaRecord(keyController.text.trim(), urlController.text.trim());
+                    setState(() {});
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Registrar'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
