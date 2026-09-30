@@ -11,78 +11,123 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppColors.cream,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 90),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header with Avatar and Greeting
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      const CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.deepForest,
-                        child: Text('BM', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+                      Container(
+                        padding: const EdgeInsets.all(2.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppColors.neonGreenGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.freshGreen.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.deepForest,
+                          child: Text(
+                            'BM',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
-                          Text('Hola, Bryan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.dark)),
-                          Text('¿Listo para trabajar tu campo?', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+                          Text(
+                            'Hola, Bryan 👋',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.dark,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          SizedBox(height: 1),
+                          Text(
+                            '¿Listo para trabajar tu campo?',
+                            style: TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.w500),
+                          ),
                         ],
                       ),
                     ],
                   ),
-                  IconButton(
-                    onPressed: () => context.push('/notifications'),
-                    icon: Stack(
-                      children: [
-                        const Icon(Icons.notifications_none_rounded, size: 28, color: AppColors.dark),
-                        Positioned(
-                          right: 2,
-                          top: 2,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.emerald,
-                              shape: BoxShape.circle,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: AppColors.modernShadow(blur: 12),
+                    ),
+                    child: IconButton(
+                      onPressed: () => context.push('/notifications'),
+                      icon: Stack(
+                        children: [
+                          const Icon(Icons.notifications_none_rounded, size: 26, color: AppColors.dark),
+                          Positioned(
+                            right: 2,
+                            top: 2,
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: AppColors.emerald,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.white, width: 1.5),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-              // Weather & Operational Flight Conditions Card
+              // Weather & Operational Flight Radar Tile
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: AppColors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(color: AppColors.softGreen, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.dark.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: AppColors.modernShadow(
+                    color: AppColors.dark.withValues(alpha: 0.05),
+                    blur: 16,
+                  ),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.softGreen,
-                        borderRadius: BorderRadius.circular(14),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.amber.shade100,
+                            AppColors.softGreen,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(Icons.wb_sunny_rounded, color: Colors.amber, size: 26),
                     ),
@@ -103,47 +148,56 @@ class HomeScreen extends StatelessWidget {
                               Text('12 km/h NE', style: TextStyle(fontSize: 12, color: AppColors.muted)),
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Condiciones de vuelo: Óptimas para aplicación',
-                            style: TextStyle(fontSize: 11, color: AppColors.forest, fontWeight: FontWeight.w600),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: const [
+                              Icon(Icons.check_circle_rounded, size: 13, color: AppColors.emerald),
+                              SizedBox(width: 4),
+                              Text(
+                                'Vuelo óptimo: Viento bajo y sin lluvia',
+                                style: TextStyle(fontSize: 11, color: AppColors.forest, fontWeight: FontWeight.w600),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: AppColors.emerald.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3)),
                       ),
-                      child: const Text(
-                        'VUELO OK',
-                        style: TextStyle(color: AppColors.emerald, fontSize: 10, fontWeight: FontWeight.bold),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.flight_takeoff_rounded, size: 12, color: AppColors.emerald),
+                          SizedBox(width: 4),
+                          Text(
+                            'OK',
+                            style: TextStyle(color: AppColors.emerald, fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-              // Main Hero Card
+              // Main High-Tech Hero Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF063F35), Color(0xFF0F2922), Color(0xFF172033)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: AppColors.heroGradient,
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.3), width: 1.5),
+                  border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.35), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.deepForest.withValues(alpha: 0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+                      color: AppColors.deepForest.withValues(alpha: 0.45),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -165,7 +219,7 @@ class HomeScreen extends StatelessWidget {
                               Icon(Icons.radar_rounded, color: AppColors.freshGreen, size: 14),
                               SizedBox(width: 6),
                               Text(
-                                'Drones Activos • Radar en Vivo',
+                                'Drones Activos • Telemetría RTK',
                                 style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -174,17 +228,17 @@ class HomeScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
-                            'v2.0 Tech',
+                            'Precision v2.0',
                             style: TextStyle(color: AppColors.cream, fontSize: 10, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     const Text(
                       'Tu campo, en buenas manos.',
                       style: TextStyle(
@@ -196,40 +250,47 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Servicios de fumigación y mapeo de precisión en Guatemala con telemetría y cálculo exacto de tiempo.',
-                      style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.3),
+                      'Servicios agrícolas de precisión con drones de alta capacidad en Oriente y Jutiapa, Guatemala.',
+                      style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.35),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     SizedBox(
                       width: double.infinity,
-                      height: 48,
+                      height: 50,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.freshGreen,
                           foregroundColor: AppColors.dark,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 3,
+                          elevation: 4,
+                          shadowColor: AppColors.freshGreen.withValues(alpha: 0.4),
                         ),
                         onPressed: () => context.push('/booking/flow'),
                         icon: const Icon(Icons.flight_takeoff_rounded, size: 20),
-                        label: const Text('Solicitar servicio de precisión', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        label: const Text(
+                          'Solicitar servicio de precisión',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 26),
 
-              const Text('Servicios rápidos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.dark)),
+              const Text(
+                'Servicios rápidos',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.dark, letterSpacing: -0.3),
+              ),
               const SizedBox(height: 12),
 
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.3,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 1.25,
                 children: [
                   _QuickServiceCard(
                     title: 'Fumigación',
@@ -247,26 +308,29 @@ class HomeScreen extends StatelessWidget {
                   ),
                   _QuickServiceCard(
                     title: 'Esparcimiento',
-                    subtitle: 'Distribución eficiente de granulados.',
+                    subtitle: 'Distribución de granulados.',
                     icon: Icons.grain_rounded,
                     color: AppColors.earth,
                     onTap: () => context.push('/booking/flow?service=spreading'),
                   ),
                   _QuickServiceCard(
                     title: 'Monitoreo',
-                    subtitle: 'Conoce mejor el estado de tu campo.',
+                    subtitle: 'Conoce el estado de tu campo.',
                     icon: Icons.camera_alt_rounded,
                     color: AppColors.deepForest,
                     onTap: () => context.push('/booking/flow?service=monitoring'),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 26),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Mis próximas reservas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.dark)),
+                  const Text(
+                    'Mis próximas reservas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.dark, letterSpacing: -0.3),
+                  ),
                   TextButton(
                     onPressed: () => context.go('/my-services'),
                     child: const Text('Ver todos', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold)),
@@ -275,26 +339,28 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              Card(
-                color: AppColors.white,
-                elevation: 2,
-                shadowColor: AppColors.dark.withValues(alpha: 0.08),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: AppColors.modernShadow(blur: 16),
+                  border: Border.all(color: AppColors.emerald.withValues(alpha: 0.15)),
+                ),
                 child: InkWell(
                   onTap: () => context.push('/my-services'),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(22),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
                       children: [
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             color: AppColors.softGreen,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.agriculture_rounded, color: AppColors.deepForest, size: 26),
+                          child: const Icon(Icons.agriculture_rounded, color: AppColors.deepForest, size: 28),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -329,7 +395,7 @@ class HomeScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.muted),
+                        const Icon(Icons.chevron_right_rounded, size: 24, color: AppColors.muted),
                       ],
                     ),
                   ),
@@ -360,14 +426,16 @@ class _QuickServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.white,
-      elevation: 2,
-      shadowColor: AppColors.dark.withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: AppColors.modernShadow(blur: 14),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 1.2),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         child: Padding(
           padding: const EdgeInsets.all(14.0),
           child: Column(
@@ -375,18 +443,18 @@ class _QuickServiceCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, color: color, size: 24),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 title,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w800,
                   fontSize: 14,
                   color: AppColors.dark,
                 ),

@@ -130,13 +130,20 @@ class _MapScreenState extends State<MapScreen> {
     );
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.isSelectionMode ? 'Dibujar Parcela' : 'Mapa de Fincas y Parcelas'),
+        backgroundColor: AppColors.dark.withValues(alpha: 0.75),
+        elevation: 0,
+        title: Text(
+          widget.isSelectionMode ? 'Dibujar Parcela' : 'Mapa de Fincas y Parcelas',
+          style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: AppColors.white),
         actions: [
           IconButton(
             icon: Icon(
               _showNdviOverlay ? Icons.eco_rounded : Icons.eco_outlined,
-              color: _showNdviOverlay ? AppColors.freshGreen : null,
+              color: _showNdviOverlay ? AppColors.freshGreen : AppColors.white,
             ),
             tooltip: _showNdviOverlay ? 'Desactivar Capa NDVI' : 'Activar Capa NDVI (Salud Vegetal)',
             onPressed: () {
@@ -146,7 +153,10 @@ class _MapScreenState extends State<MapScreen> {
             },
           ),
           IconButton(
-            icon: Icon(_showExistingParcels ? Icons.layers_rounded : Icons.layers_clear_rounded),
+            icon: Icon(
+              _showExistingParcels ? Icons.layers_rounded : Icons.layers_clear_rounded,
+              color: AppColors.white,
+            ),
             tooltip: _showExistingParcels ? 'Ocultar parcelas guardadas' : 'Mostrar parcelas guardadas',
             onPressed: () {
               setState(() {
@@ -155,7 +165,10 @@ class _MapScreenState extends State<MapScreen> {
             },
           ),
           IconButton(
-            icon: Icon(_isSatellite ? Icons.map_rounded : Icons.satellite_alt_rounded),
+            icon: Icon(
+              _isSatellite ? Icons.map_rounded : Icons.satellite_alt_rounded,
+              color: AppColors.white,
+            ),
             tooltip: _isSatellite ? 'Modo Normal' : 'Modo Satélite',
             onPressed: () {
               setState(() {
@@ -212,23 +225,23 @@ class _MapScreenState extends State<MapScreen> {
                     final point = entry.value;
                     return Marker(
                       point: point,
-                      width: 24,
-                      height: 24,
+                      width: 28,
+                      height: 28,
                       child: Container(
                         decoration: BoxDecoration(
                           color: AppColors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.deepForest, width: 2.5),
+                          border: Border.all(color: AppColors.deepForest, width: 3.0),
                           boxShadow: const [
-                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                            BoxShadow(color: Colors.black38, blurRadius: 6, offset: Offset(0, 3)),
                           ],
                         ),
                         child: Center(
                           child: Text(
                             '${index + 1}',
                             style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.dark,
                             ),
                           ),
@@ -241,15 +254,14 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
 
+          // Floating Controls
           Positioned(
-            top: 16,
+            top: 100,
             right: 16,
             child: Column(
               children: [
-                FloatingActionButton.small(
-                  heroTag: 'zoom_in',
-                  backgroundColor: AppColors.white,
-                  child: const Icon(Icons.add, color: AppColors.dark),
+                _FloatingMapButton(
+                  icon: Icons.add,
                   onPressed: () {
                     _mapController.move(
                       _mapController.camera.center,
@@ -257,11 +269,9 @@ class _MapScreenState extends State<MapScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'zoom_out',
-                  backgroundColor: AppColors.white,
-                  child: const Icon(Icons.remove, color: AppColors.dark),
+                const SizedBox(height: 10),
+                _FloatingMapButton(
+                  icon: Icons.remove,
                   onPressed: () {
                     _mapController.move(
                       _mapController.camera.center,
@@ -269,11 +279,10 @@ class _MapScreenState extends State<MapScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'my_location',
-                  backgroundColor: AppColors.white,
-                  child: const Icon(Icons.my_location_rounded, color: AppColors.emerald),
+                const SizedBox(height: 10),
+                _FloatingMapButton(
+                  icon: Icons.my_location_rounded,
+                  iconColor: AppColors.emerald,
                   onPressed: () {
                     _mapController.move(_initialCenter, 15.0);
                   },
@@ -282,18 +291,20 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
+          // HUD Top Pill
           Positioned(
-            top: 16,
+            top: 100,
             left: 16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.dark.withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4)),
+                    color: AppColors.dark.withValues(alpha: 0.88),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4), width: 1.2),
+                    boxShadow: AppColors.modernShadow(blur: 12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -301,7 +312,7 @@ class _MapScreenState extends State<MapScreen> {
                       Icon(Icons.gps_fixed_rounded, color: AppColors.freshGreen, size: 16),
                       SizedBox(width: 8),
                       Text(
-                        'GPS: Lat 14.2818° N, Lon 89.8953° W',
+                        'RTK Telemetría: 14.2818° N, 89.8953° W',
                         style: TextStyle(color: AppColors.cream, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -312,8 +323,8 @@ class _MapScreenState extends State<MapScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.deepForest.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(14),
+                      color: AppColors.deepForest.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.freshGreen),
                     ),
                     child: Row(
@@ -322,8 +333,8 @@ class _MapScreenState extends State<MapScreen> {
                         Icon(Icons.eco_rounded, color: AppColors.freshGreen, size: 14),
                         SizedBox(width: 6),
                         Text(
-                          'Capa NDVI Activa: Índice 0.78 (Salud Óptima)',
-                          style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                          'NDVI Vegetal: 0.78 (Salud Óptima)',
+                          style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -333,20 +344,22 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
+          // Bottom Sheet Polygon Stats HUD
           Positioned(
             left: 16,
             right: 16,
-            bottom: 20,
+            bottom: 95,
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 4)),
-                ],
-                border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3), width: 1.5),
+                color: AppColors.white.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: AppColors.modernShadow(
+                  color: AppColors.dark.withValues(alpha: 0.15),
+                  blur: 24,
+                ),
+                border: Border.all(color: AppColors.emerald.withValues(alpha: 0.25), width: 1.5),
               ),
-              padding: const EdgeInsets.all(18.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -359,19 +372,19 @@ class _MapScreenState extends State<MapScreen> {
                         labelStyle: const TextStyle(color: AppColors.deepForest),
                         prefixIcon: const Icon(Icons.edit_location_alt_outlined, color: AppColors.emerald),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(color: AppColors.borderLight),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(color: AppColors.emerald, width: 2),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                   ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -390,6 +403,7 @@ class _MapScreenState extends State<MapScreen> {
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
                               color: AppColors.deepForest,
+                              letterSpacing: -0.5,
                             ),
                           ),
                           Text(
@@ -397,10 +411,27 @@ class _MapScreenState extends State<MapScreen> {
                             style: const TextStyle(color: AppColors.muted, fontSize: 11),
                           ),
                           if (_polygonPoints.length >= 3) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Perímetro: ${currentPerimeterMeters.toStringAsFixed(0)}m • Est. Vuelo: ~${durationResult.formattedTotalTime}',
-                              style: const TextStyle(color: AppColors.emerald, fontSize: 11, fontWeight: FontWeight.bold),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.softGreen,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.timer_outlined, size: 13, color: AppColors.deepForest),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Est. Vuelo: ~${durationResult.formattedTotalTime}',
+                                    style: const TextStyle(
+                                      color: AppColors.deepForest,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ],
@@ -408,29 +439,43 @@ class _MapScreenState extends State<MapScreen> {
                       if (_polygonPoints.isNotEmpty)
                         Row(
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.undo_rounded, color: AppColors.dark),
-                              tooltip: 'Deshacer punto',
-                              onPressed: _undoLastVertex,
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.cream,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.undo_rounded, color: AppColors.dark, size: 20),
+                                tooltip: 'Deshacer punto',
+                                onPressed: _undoLastVertex,
+                              ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                              tooltip: 'Limpiar mapa',
-                              onPressed: _clearPolygon,
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                tooltip: 'Limpiar mapa',
+                                onPressed: _clearPolygon,
+                              ),
                             ),
                           ],
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    height: 48,
+                    height: 50,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _polygonPoints.length >= 3 ? AppColors.emerald : AppColors.muted,
                         foregroundColor: AppColors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: _polygonPoints.length >= 3 ? 3 : 0,
                       ),
                       onPressed: _polygonPoints.length >= 3
                           ? () {
@@ -450,10 +495,13 @@ class _MapScreenState extends State<MapScreen> {
                               }
                             }
                           : null,
-                      icon: const Icon(Icons.check_circle_outline_rounded),
-                      label: Text(_polygonPoints.length < 3
-                          ? 'Toca el mapa para agregar puntos (mín. 3)'
-                          : 'Guardar Parcela'),
+                      icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
+                      label: Text(
+                        _polygonPoints.length < 3
+                            ? 'Toca el mapa para agregar puntos (mín. 3)'
+                            : 'Guardar Parcela',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
                     ),
                   ),
                 ],
@@ -461,6 +509,37 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FloatingMapButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color iconColor;
+
+  const _FloatingMapButton({
+    required this.icon,
+    required this.onPressed,
+    this.iconColor = AppColors.dark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.9),
+        shape: BoxShape.circle,
+        boxShadow: AppColors.modernShadow(blur: 12),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, color: iconColor, size: 22),
+        onPressed: onPressed,
       ),
     );
   }
