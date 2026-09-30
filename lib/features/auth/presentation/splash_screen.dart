@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/services/app_media_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,6 +15,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  final AppMediaService _mediaService = AppMediaService.instance;
 
   @override
   void initState() {
@@ -57,26 +59,41 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final bgUrl = _mediaService.getMediaUrl('splash_bg');
+    final logoUrl = _mediaService.getMediaUrl('logo_dark');
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background Image
-          Image.asset(
-            'assets/images/splash_bg.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.deepForest, AppColors.dark],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+          // Background Image (Network or Local Fallback Asset)
+          bgUrl.startsWith('http')
+              ? Image.network(
+                  bgUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.deepForest, AppColors.dark],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                )
+              : Image.asset(
+                  bgUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.deepForest, AppColors.dark],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
 
           // Gradient Overlay
           Container(
@@ -91,25 +108,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      'assets/images/idrone_logo_dark.png',
-                      height: 120,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.emerald.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4), width: 2),
+                    logoUrl.startsWith('http')
+                        ? Image.network(
+                            logoUrl,
+                            height: 120,
+                            errorBuilder: (context, error, stackTrace) => _buildLogoFallback(),
+                          )
+                        : Image.asset(
+                            logoUrl,
+                            height: 120,
+                            errorBuilder: (context, error, stackTrace) => _buildLogoFallback(),
                           ),
-                          child: const Icon(
-                            Icons.air_rounded,
-                            size: 72,
-                            color: AppColors.freshGreen,
-                          ),
-                        );
-                      },
-                    ),
                     const SizedBox(height: 16),
                     RichText(
                       text: const TextSpan(
@@ -150,6 +159,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLogoFallback() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.emerald.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4), width: 2),
+      ),
+      child: const Icon(
+        Icons.air_rounded,
+        size: 72,
+        color: AppColors.freshGreen,
       ),
     );
   }

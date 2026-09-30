@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
 import '../../../core/services/pricing_engine.dart';
 import '../../../core/services/work_duration_calculator.dart';
+import '../../../core/services/app_media_service.dart';
 import '../../fields/presentation/map_screen.dart';
 
 class BookingFlowScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class BookingFlowScreen extends StatefulWidget {
 }
 
 class _BookingFlowScreenState extends State<BookingFlowScreen> {
+  final AppMediaService _mediaService = AppMediaService.instance;
   int _currentStep = 0;
 
   // Selected State
@@ -43,7 +45,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
       'title': 'Fumigación',
       'desc': 'Aplicación precisa y uniforme contra plagas.',
       'icon': Icons.sanitizer_rounded,
-      'image': 'assets/images/service_fumigation.png',
+      'mediaKey': 'service_fumigation',
       'color': AppColors.emerald,
     },
     {
@@ -51,7 +53,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
       'title': 'Fertilización foliar',
       'desc': 'Nutrición directa para acelerar crecimiento.',
       'icon': Icons.water_drop_rounded,
-      'image': 'assets/images/service_fertilization.png',
+      'mediaKey': 'service_fertilization',
       'color': AppColors.forest,
     },
     {
@@ -59,7 +61,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
       'title': 'Esparcimiento',
       'desc': 'Distribución eficiente de sólidos granulados.',
       'icon': Icons.grain_rounded,
-      'image': 'assets/images/service_spreading.png',
+      'mediaKey': 'service_spreading',
       'color': AppColors.earth,
     },
     {
@@ -67,20 +69,20 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
       'title': 'Monitoreo agrícola',
       'desc': 'Mapeo multiespectral NDVI e inspección visual.',
       'icon': Icons.camera_alt_rounded,
-      'image': 'assets/images/service_monitoring.png',
+      'mediaKey': 'service_monitoring',
       'color': AppColors.deepForest,
     },
   ];
 
   final List<Map<String, dynamic>> _crops = [
-    {'name': 'Maíz', 'icon': Icons.grass_rounded, 'image': 'assets/images/crop_maiz.png'},
-    {'name': 'Melón', 'icon': Icons.nature_rounded, 'image': 'assets/images/crop_melon.png'},
-    {'name': 'Caña de azúcar', 'icon': Icons.agriculture_rounded, 'image': 'assets/images/crop_cana.png'},
-    {'name': 'Pastos', 'icon': Icons.eco_rounded, 'image': 'assets/images/crop_pastos.png'},
-    {'name': 'Café', 'icon': Icons.local_cafe_rounded, 'image': 'assets/images/crop_cafe.png'},
-    {'name': 'Tomate', 'icon': Icons.park_rounded, 'image': 'assets/images/crop_tomate.png'},
-    {'name': 'Hortalizas', 'icon': Icons.spa_rounded, 'image': 'assets/images/crop_hortalizas.png'},
-    {'name': 'Otros', 'icon': Icons.more_horiz_rounded, 'image': 'assets/images/crop_otros.png'},
+    {'name': 'Maíz', 'icon': Icons.grass_rounded, 'mediaKey': 'crop_maiz'},
+    {'name': 'Melón', 'icon': Icons.nature_rounded, 'mediaKey': 'crop_melon'},
+    {'name': 'Caña de azúcar', 'icon': Icons.agriculture_rounded, 'mediaKey': 'crop_cana'},
+    {'name': 'Pastos', 'icon': Icons.eco_rounded, 'mediaKey': 'crop_pastos'},
+    {'name': 'Café', 'icon': Icons.local_cafe_rounded, 'mediaKey': 'crop_cafe'},
+    {'name': 'Tomate', 'icon': Icons.park_rounded, 'mediaKey': 'crop_tomate'},
+    {'name': 'Hortalizas', 'icon': Icons.spa_rounded, 'mediaKey': 'crop_hortalizas'},
+    {'name': 'Otros', 'icon': Icons.more_horiz_rounded, 'mediaKey': 'crop_otros'},
   ];
 
   @override
@@ -307,6 +309,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             final service = _services[index];
             final isSelected = _selectedService == service['id'];
             final color = service['color'] as Color;
+            final imgUrl = _mediaService.getMediaUrl(service['mediaKey'] as String);
 
             return Container(
               clipBehavior: Clip.antiAlias,
@@ -326,60 +329,53 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                   });
                 },
                 borderRadius: BorderRadius.circular(22),
-                child: Stack(
-                  children: [
-                    if (isSelected)
-                      Positioned.fill(
-                        child: Container(
-                          color: AppColors.emerald.withValues(alpha: 0.05),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              service['image'] as String,
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: imgUrl.startsWith('http')
+                            ? Image.network(
+                                imgUrl,
                                 width: 60,
                                 height: 60,
-                                color: color.withValues(alpha: 0.15),
-                                child: Icon(service['icon'] as IconData, color: color, size: 28),
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => Container(width: 60, height: 60, color: color.withValues(alpha: 0.15)),
+                              )
+                            : Image.asset(
+                                imgUrl,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => Container(width: 60, height: 60, color: color.withValues(alpha: 0.15)),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  service['title'] as String,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.dark),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  service['desc'] as String,
-                                  style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.3),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (isSelected)
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(color: AppColors.emerald, shape: BoxShape.circle),
-                              child: const Icon(Icons.check_rounded, color: AppColors.white, size: 16),
-                            ),
-                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              service['title'] as String,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.dark),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              service['desc'] as String,
+                              style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: AppColors.emerald, shape: BoxShape.circle),
+                          child: const Icon(Icons.check_rounded, color: AppColors.white, size: 16),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -416,6 +412,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           itemBuilder: (context, index) {
             final crop = _crops[index];
             final isSelected = _selectedCrop == crop['name'];
+            final imgUrl = _mediaService.getMediaUrl(crop['mediaKey'] as String);
 
             return Container(
               clipBehavior: Clip.antiAlias,
@@ -438,11 +435,9 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: Image.asset(
-                        crop['image'] as String,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(color: AppColors.cream),
-                      ),
+                      child: imgUrl.startsWith('http')
+                          ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.cream))
+                          : Image.asset(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.cream)),
                     ),
                     Positioned.fill(
                       child: Container(

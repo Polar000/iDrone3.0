@@ -1,12 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/services/app_media_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final AppMediaService _mediaService = AppMediaService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _mediaService.addListener(_onMediaChanged);
+  }
+
+  @override
+  void dispose() {
+    _mediaService.removeListener(_onMediaChanged);
+    super.dispose();
+  }
+
+  void _onMediaChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final heroUrl = _mediaService.getMediaUrl('hero_drone', fallback: 'assets/images/hero_drone.png');
+
     return Scaffold(
       backgroundColor: AppColors.cream,
       body: SafeArea(
@@ -185,7 +211,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // Main High-Tech Hero Card with Drone Asset Image
+              // Main High-Tech Hero Card with Dynamic Database Image
               Container(
                 width: double.infinity,
                 clipBehavior: Clip.antiAlias,
@@ -202,15 +228,11 @@ class HomeScreen extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    // Background Hero Image
+                    // Dynamic Database Hero Image
                     Positioned.fill(
-                      child: Image.asset(
-                        'assets/images/hero_drone.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: AppColors.deepForest,
-                        ),
-                      ),
+                      child: heroUrl.startsWith('http')
+                          ? Image.network(heroUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.deepForest))
+                          : Image.asset(heroUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.deepForest)),
                     ),
                     // Dark Gradient Overlay for Legibility
                     Positioned.fill(
@@ -326,7 +348,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Fumigación',
                     subtitle: 'Aplicación precisa y uniforme.',
-                    imageAsset: 'assets/images/service_fumigation.png',
+                    imageKey: 'service_fumigation',
                     icon: Icons.sanitizer_rounded,
                     color: AppColors.emerald,
                     onTap: () => context.push('/booking/flow?service=fumigation'),
@@ -334,7 +356,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Fertilización',
                     subtitle: 'Mejora el manejo de tus cultivos.',
-                    imageAsset: 'assets/images/service_fertilization.png',
+                    imageKey: 'service_fertilization',
                     icon: Icons.water_drop_rounded,
                     color: AppColors.forest,
                     onTap: () => context.push('/booking/flow?service=fertilization'),
@@ -342,7 +364,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Esparcimiento',
                     subtitle: 'Distribución de granulados.',
-                    imageAsset: 'assets/images/service_spreading.png',
+                    imageKey: 'service_spreading',
                     icon: Icons.grain_rounded,
                     color: AppColors.earth,
                     onTap: () => context.push('/booking/flow?service=spreading'),
@@ -350,7 +372,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Monitoreo',
                     subtitle: 'Conoce el estado de tu campo.',
-                    imageAsset: 'assets/images/service_monitoring.png',
+                    imageKey: 'service_monitoring',
                     icon: Icons.camera_alt_rounded,
                     color: AppColors.deepForest,
                     onTap: () => context.push('/booking/flow?service=monitoring'),
@@ -447,7 +469,7 @@ class HomeScreen extends StatelessWidget {
 class _QuickServiceCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String imageAsset;
+  final String imageKey;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
@@ -455,7 +477,7 @@ class _QuickServiceCard extends StatelessWidget {
   const _QuickServiceCard({
     required this.title,
     required this.subtitle,
-    required this.imageAsset,
+    required this.imageKey,
     required this.icon,
     required this.color,
     required this.onTap,
@@ -463,6 +485,8 @@ class _QuickServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imgUrl = AppMediaService.instance.getMediaUrl(imageKey, fallback: 'assets/images/$imageKey.png');
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -476,13 +500,11 @@ class _QuickServiceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         child: Stack(
           children: [
-            // Background Card Image with Soft Fade
+            // Dynamic Background Image
             Positioned.fill(
-              child: Image.asset(
-                imageAsset,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(color: AppColors.white),
-              ),
+              child: imgUrl.startsWith('http')
+                  ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.white))
+                  : Image.asset(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.white)),
             ),
             Positioned.fill(
               child: Container(
