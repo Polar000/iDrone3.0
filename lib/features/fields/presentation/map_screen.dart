@@ -24,6 +24,7 @@ class _MapScreenState extends State<MapScreen> {
   final LatLng _initialCenter = const LatLng(14.2818, -89.8953);
   final TextEditingController _parcelNameController = TextEditingController(text: 'Nueva Parcela');
   bool _isSatellite = true;
+  bool _showExistingParcels = true;
 
   final List<LatLng> _polygonPoints = [];
 
@@ -115,6 +116,15 @@ class _MapScreenState extends State<MapScreen> {
         title: Text(widget.isSelectionMode ? 'Dibujar Parcela' : 'Mapa de Fincas y Parcelas'),
         actions: [
           IconButton(
+            icon: Icon(_showExistingParcels ? Icons.layers_rounded : Icons.layers_clear_rounded),
+            tooltip: _showExistingParcels ? 'Ocultar parcelas guardadas' : 'Mostrar parcelas guardadas',
+            onPressed: () {
+              setState(() {
+                _showExistingParcels = !_showExistingParcels;
+              });
+            },
+          ),
+          IconButton(
             icon: Icon(_isSatellite ? Icons.map_rounded : Icons.satellite_alt_rounded),
             tooltip: _isSatellite ? 'Modo Normal' : 'Modo Satélite',
             onPressed: () {
@@ -143,13 +153,14 @@ class _MapScreenState extends State<MapScreen> {
               ),
               PolygonLayer(
                 polygons: [
-                  ..._existingParcels.map((parcel) => Polygon(
-                        points: parcel['points'] as List<LatLng>,
-                        color: AppColors.forest.withValues(alpha: 0.35),
-                        borderColor: AppColors.freshGreen,
-                        borderStrokeWidth: 2.5,
-                        isFilled: true,
-                      )),
+                  if (_showExistingParcels)
+                    ..._existingParcels.map((parcel) => Polygon(
+                          points: parcel['points'] as List<LatLng>,
+                          color: AppColors.forest.withValues(alpha: 0.35),
+                          borderColor: AppColors.freshGreen,
+                          borderStrokeWidth: 2.5,
+                          isFilled: true,
+                        )),
                   if (_polygonPoints.length >= 3)
                     Polygon(
                       points: _polygonPoints,

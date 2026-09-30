@@ -25,6 +25,11 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _selectedTimeWindow = '08:00 AM - 11:00 AM';
 
+  String _paymentMethod = 'card'; // 'card', 'transfer', 'deposit'
+  final TextEditingController _cardNumberController = TextEditingController(text: '4532 •••• •••• 8821');
+  final TextEditingController _cardHolderController = TextEditingController(text: 'Bryan Orellana');
+  final TextEditingController _transferRefController = TextEditingController();
+
   final List<Map<String, String>> _services = [
     {
       'title': 'Fumigación',
@@ -68,6 +73,14 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     '08:00 AM - 11:00 AM',
     '01:00 PM - 04:00 PM',
   ];
+
+  @override
+  void dispose() {
+    _cardNumberController.dispose();
+    _cardHolderController.dispose();
+    _transferRefController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -392,9 +405,9 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Resumen de Cotización', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.deepForest)),
+        const Text('Resumen y Pago de Anticipo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.deepForest)),
         const SizedBox(height: 6),
-        const Text('Revisa el desglose transparente antes de confirmar.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+        const Text('Revisa la cotización y selecciona tu método de pago.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
         const SizedBox(height: 20),
 
         Card(
@@ -433,6 +446,95 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 20),
+        const Text('Método de Pago del Anticipo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.deepForest)),
+        const SizedBox(height: 12),
+
+        Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: _paymentMethod == 'card' ? AppColors.emerald : Colors.transparent, width: 2),
+          ),
+          color: _paymentMethod == 'card' ? AppColors.softGreen : AppColors.white,
+          child: ListTile(
+            leading: const Icon(Icons.credit_card_rounded, color: AppColors.emerald),
+            title: const Text('Tarjeta de Crédito / Débito', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('Procesamiento seguro e inmediato', style: TextStyle(fontSize: 12)),
+            trailing: Radio<String>(
+              value: 'card',
+              groupValue: _paymentMethod,
+              activeColor: AppColors.emerald,
+              onChanged: (val) => setState(() => _paymentMethod = val!),
+            ),
+            onTap: () => setState(() => _paymentMethod = 'card'),
+          ),
+        ),
+        if (_paymentMethod == 'card')
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _cardHolderController,
+                  decoration: const InputDecoration(
+                    labelText: 'Titular de la tarjeta',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _cardNumberController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Número de tarjeta',
+                    prefixIcon: Icon(Icons.payment_rounded),
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 8),
+        Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: _paymentMethod == 'transfer' ? AppColors.emerald : Colors.transparent, width: 2),
+          ),
+          color: _paymentMethod == 'transfer' ? AppColors.softGreen : AppColors.white,
+          child: ListTile(
+            leading: const Icon(Icons.account_balance_rounded, color: AppColors.deepForest),
+            title: const Text('Transferencia Bancaria / Banrural / BI', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('Transferencia o depósito monetario', style: TextStyle(fontSize: 12)),
+            trailing: Radio<String>(
+              value: 'transfer',
+              groupValue: _paymentMethod,
+              activeColor: AppColors.emerald,
+              onChanged: (val) => setState(() => _paymentMethod = val!),
+            ),
+            onTap: () => setState(() => _paymentMethod = 'transfer'),
+          ),
+        ),
+        if (_paymentMethod == 'transfer')
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Cuenta iDrone S.A.: Industrial Moneda Q - 012-345678-9', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _transferRefController,
+                  decoration: const InputDecoration(
+                    labelText: 'Número de boleta / referencia',
+                    prefixIcon: Icon(Icons.receipt_long_rounded),
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
