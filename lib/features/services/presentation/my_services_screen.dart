@@ -76,7 +76,10 @@ class MyServicesScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = items[index];
         return Card(
-          color: AppColors.dark,
+          color: AppColors.white,
+          elevation: 2,
+          shadowColor: AppColors.dark.withValues(alpha: 0.08),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           margin: const EdgeInsets.only(bottom: 12),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -89,31 +92,31 @@ class MyServicesScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item['title']!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.white),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.dark),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.emerald.withValues(alpha: 0.2),
+                        color: AppColors.softGreen,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.5)),
+                        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         item['status']!,
-                        style: const TextStyle(color: AppColors.freshGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: AppColors.deepForest, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('${item['service']} • ${item['crop']} • ${item['area']}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+                Text('${item['service']} • ${item['crop']} • ${item['area']}', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(item['date']!, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w500, fontSize: 12)),
-                    Text(item['total']!, style: const TextStyle(color: AppColors.freshGreen, fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(item['date']!, style: const TextStyle(color: AppColors.dark, fontWeight: FontWeight.w500, fontSize: 12)),
+                    Text(item['total']!, style: const TextStyle(color: AppColors.deepForest, fontWeight: FontWeight.bold, fontSize: 15)),
                   ],
                 ),
               ],

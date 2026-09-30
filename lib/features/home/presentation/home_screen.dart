@@ -180,8 +180,9 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 8),
 
               Card(
-                color: AppColors.dark,
-                elevation: 3,
+                color: AppColors.white,
+                elevation: 2,
+                shadowColor: AppColors.dark.withValues(alpha: 0.08),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 child: InkWell(
                   onTap: () => context.push('/my-services'),
@@ -209,14 +210,14 @@ class HomeScreen extends StatelessWidget {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color: AppColors.white,
+                                  color: AppColors.dark,
                                 ),
                               ),
                               SizedBox(height: 4),
                               Text(
                                 'Fumigación • Maíz • 12.60 manzanas',
                                 style: TextStyle(
-                                  color: Color(0xFF9CA3AF),
+                                  color: AppColors.muted,
                                   fontSize: 12,
                                 ),
                               ),
@@ -224,7 +225,7 @@ class HomeScreen extends StatelessWidget {
                               Text(
                                 'Programado: Mañana, 08:00 AM',
                                 style: TextStyle(
-                                  color: AppColors.emerald,
+                                  color: AppColors.deepForest,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -232,7 +233,7 @@ class HomeScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded, size: 22, color: Color(0xFF9CA3AF)),
+                        const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.muted),
                       ],
                     ),
                   ),

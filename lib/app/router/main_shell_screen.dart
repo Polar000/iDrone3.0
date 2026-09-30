@@ -37,11 +37,11 @@ class MainShellScreen extends StatelessWidget {
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.dark,
+        backgroundColor: AppColors.white,
         currentIndex: _calculateSelectedIndex(context),
         onTap: (index) => _onItemTapped(index, context),
-        selectedItemColor: AppColors.emerald,
-        unselectedItemColor: const Color(0xFF9CA3AF),
+        selectedItemColor: AppColors.deepForest,
+        unselectedItemColor: AppColors.muted,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         items: const [
