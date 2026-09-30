@@ -326,7 +326,7 @@ class _MapScreenState extends State<MapScreen> {
                             '${areaManzanas.toStringAsFixed(2)} manzanas',
                             style: const TextStyle(
                               fontSize: 22,
-                              fontWeight: FontWeight.extrabold,
+                              fontWeight: FontWeight.w800,
                               color: AppColors.deepForest,
                             ),
                           ),
