@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: AppColors.dark,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -42,9 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.deepForest,
                       shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.3), width: 2),
                     ),
                     child: const Icon(Icons.air_rounded, size: 40, color: AppColors.freshGreen),
                   ),
@@ -56,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.deepForest,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
@@ -69,14 +70,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                const Text('Correo electrónico', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.dark)),
+                const Text('Correo electrónico', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.cream)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: InputDecoration(
                     hintText: 'ejemplo@campo.com',
-                    prefixIcon: Icon(Icons.email_outlined),
+                    hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.7)),
+                    prefixIcon: const Icon(Icons.email_outlined, color: AppColors.emerald),
+                    filled: true,
+                    fillColor: const Color(0xFF1E293B),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF334155)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.emerald, width: 2),
+                    ),
                   ),
                   validator: (val) {
                     if (val == null || val.isEmpty || !val.contains('@')) {
@@ -86,14 +99,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                const Text('Contraseña', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.dark)),
+                const Text('Contraseña', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.cream)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: InputDecoration(
                     hintText: '••••••••',
-                    prefixIcon: Icon(Icons.lock_outline),
+                    hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.7)),
+                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.emerald),
+                    filled: true,
+                    fillColor: const Color(0xFF1E293B),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF334155)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.emerald, width: 2),
+                    ),
                   ),
                   validator: (val) {
                     if (val == null || val.length < 6) {
@@ -107,13 +132,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => context.push('/register'),
-                    child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(color: AppColors.emerald)),
+                    child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(color: AppColors.freshGreen)),
                   ),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
+                  height: 52,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.emerald,
+                      foregroundColor: AppColors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 2,
+                    ),
                     onPressed: _isLoading ? null : _handleLogin,
                     child: _isLoading
                         ? const SizedBox(
@@ -121,16 +153,49 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 2),
                           )
-                        : const Text('Ingresar'),
+                        : const Text('Ingresar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  height: 52,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E293B),
+                      foregroundColor: AppColors.white,
+                      side: const BorderSide(color: Color(0xFF334155)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
                     onPressed: () {},
-                    icon: const Icon(Icons.g_mobiledata, size: 28),
-                    label: const Text('Continuar con Google'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'G',
+                              style: TextStyle(
+                                color: Color(0xFF4285F4),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Continuar con Google',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -142,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () => context.push('/register'),
                       child: const Text(
                         'Regístrate',
-                        style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppColors.freshGreen, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],

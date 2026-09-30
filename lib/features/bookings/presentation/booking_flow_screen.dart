@@ -318,10 +318,10 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 MaterialPageRoute(
                   builder: (context) => MapScreen(
                     isSelectionMode: true,
-                    onPolygonSaved: (points, areaM2) {
+                    onPolygonSaved: (points, areaM2, parcelName) {
                       setState(() {
                         _areaM2 = areaM2;
-                        _selectedParcel = 'Nueva Parcela Dibujada';
+                        _selectedParcel = parcelName;
                       });
                       Navigator.of(context).pop();
                     },
