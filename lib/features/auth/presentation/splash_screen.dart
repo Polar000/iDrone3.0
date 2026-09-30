@@ -59,16 +59,30 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.deepForest, AppColors.dark],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
+          // Background Image
+          Image.asset(
+            'assets/images/splash_bg.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.deepForest, AppColors.dark],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              );
+            },
           ),
+
+          // Gradient Overlay
+          Container(
+            color: AppColors.dark.withValues(alpha: 0.55),
+          ),
+
           Center(
             child: FadeTransition(
               opacity: _fadeAnimation,
@@ -77,20 +91,26 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.emerald.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4), width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.air_rounded,
-                        size: 72,
-                        color: AppColors.freshGreen,
-                      ),
+                    Image.asset(
+                      'assets/images/idrone_logo_dark.png',
+                      height: 120,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.emerald.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4), width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.air_rounded,
+                            size: 72,
+                            color: AppColors.freshGreen,
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     RichText(
                       text: const TextSpan(
                         children: [
@@ -121,6 +141,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         fontSize: 16,
                         color: AppColors.cream,
                         letterSpacing: 0.5,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],

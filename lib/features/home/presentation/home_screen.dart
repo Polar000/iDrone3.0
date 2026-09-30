@@ -185,12 +185,11 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // Main High-Tech Hero Card
+              // Main High-Tech Hero Card with Drone Asset Image
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(22),
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  gradient: AppColors.heroGradient,
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.35), width: 1.5),
                   boxShadow: [
@@ -201,76 +200,108 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.freshGreen.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.4)),
+                    // Background Hero Image
+                    Positioned.fill(
+                      child: Image.asset(
+                        'assets/images/hero_drone.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: AppColors.deepForest,
+                        ),
+                      ),
+                    ),
+                    // Dark Gradient Overlay for Legibility
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.dark.withValues(alpha: 0.88),
+                              AppColors.deepForest.withValues(alpha: 0.75),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.radar_rounded, color: AppColors.freshGreen, size: 14),
-                              SizedBox(width: 6),
-                              Text(
-                                'Drones Activos • Telemetría RTK',
-                                style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(22.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.freshGreen.withValues(alpha: 0.22),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.5)),
+                                ),
+                                child: Row(
+                                  children: const [
+                                    Icon(Icons.radar_rounded, color: AppColors.freshGreen, size: 14),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Drones Activos • Telemetría RTK',
+                                      style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Precision v2.0',
+                                  style: TextStyle(color: AppColors.cream, fontSize: 10, fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 18),
+                          const Text(
+                            'Tu campo, en buenas manos.',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                          child: const Text(
-                            'Precision v2.0',
-                            style: TextStyle(color: AppColors.cream, fontSize: 10, fontWeight: FontWeight.w600),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Servicios agrícolas de precisión con drones de alta capacidad en Oriente y Jutiapa, Guatemala.',
+                            style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.35),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Tu campo, en buenas manos.',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Servicios agrícolas de precisión con drones de alta capacidad en Oriente y Jutiapa, Guatemala.',
-                      style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.35),
-                    ),
-                    const SizedBox(height: 22),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.freshGreen,
-                          foregroundColor: AppColors.dark,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 4,
-                          shadowColor: AppColors.freshGreen.withValues(alpha: 0.4),
-                        ),
-                        onPressed: () => context.push('/booking/flow'),
-                        icon: const Icon(Icons.flight_takeoff_rounded, size: 20),
-                        label: const Text(
-                          'Solicitar servicio de precisión',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                        ),
+                          const SizedBox(height: 22),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.freshGreen,
+                                foregroundColor: AppColors.dark,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 4,
+                                shadowColor: AppColors.freshGreen.withValues(alpha: 0.4),
+                              ),
+                              onPressed: () => context.push('/booking/flow'),
+                              icon: const Icon(Icons.flight_takeoff_rounded, size: 20),
+                              label: const Text(
+                                'Solicitar servicio de precisión',
+                                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -295,6 +326,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Fumigación',
                     subtitle: 'Aplicación precisa y uniforme.',
+                    imageAsset: 'assets/images/service_fumigation.png',
                     icon: Icons.sanitizer_rounded,
                     color: AppColors.emerald,
                     onTap: () => context.push('/booking/flow?service=fumigation'),
@@ -302,6 +334,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Fertilización',
                     subtitle: 'Mejora el manejo de tus cultivos.',
+                    imageAsset: 'assets/images/service_fertilization.png',
                     icon: Icons.water_drop_rounded,
                     color: AppColors.forest,
                     onTap: () => context.push('/booking/flow?service=fertilization'),
@@ -309,6 +342,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Esparcimiento',
                     subtitle: 'Distribución de granulados.',
+                    imageAsset: 'assets/images/service_spreading.png',
                     icon: Icons.grain_rounded,
                     color: AppColors.earth,
                     onTap: () => context.push('/booking/flow?service=spreading'),
@@ -316,6 +350,7 @@ class HomeScreen extends StatelessWidget {
                   _QuickServiceCard(
                     title: 'Monitoreo',
                     subtitle: 'Conoce el estado de tu campo.',
+                    imageAsset: 'assets/images/service_monitoring.png',
                     icon: Icons.camera_alt_rounded,
                     color: AppColors.deepForest,
                     onTap: () => context.push('/booking/flow?service=monitoring'),
@@ -412,6 +447,7 @@ class HomeScreen extends StatelessWidget {
 class _QuickServiceCard extends StatelessWidget {
   final String title;
   final String subtitle;
+  final String imageAsset;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
@@ -419,6 +455,7 @@ class _QuickServiceCard extends StatelessWidget {
   const _QuickServiceCard({
     required this.title,
     required this.subtitle,
+    required this.imageAsset,
     required this.icon,
     required this.color,
     required this.onTap,
@@ -427,51 +464,78 @@ class _QuickServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(22),
         boxShadow: AppColors.modernShadow(blur: 14),
-        border: Border.all(color: color.withValues(alpha: 0.15), width: 1.2),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.2),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
+        child: Stack(
+          children: [
+            // Background Card Image with Soft Fade
+            Positioned.fill(
+              child: Image.asset(
+                imageAsset,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(color: AppColors.white),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  color: AppColors.dark,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.white.withValues(alpha: 0.95),
+                      AppColors.white.withValues(alpha: 0.85),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.muted,
-                  height: 1.2,
-                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppColors.dark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
