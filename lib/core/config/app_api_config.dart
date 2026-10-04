@@ -1,53 +1,63 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Centralized & Secure API Configuration Manager for iDrone.
 ///
-/// Security Directive Compliance:
-/// 1. Uses `--dart-define` / [String.fromEnvironment] for zero hardcoded credentials.
-/// 2. Validates HTTPS protocol requirement for all remote API endpoints.
-/// 3. Runtime guard against accidental exposure of Supabase `service_role` or payment secret keys.
-/// 4. Provides safe sanitized headers for network client requests.
+/// Automatically reads variables from `.env` file via [dotenv]
+/// with fallback to `--dart-define` / [String.fromEnvironment].
 class AppApiConfig {
   AppApiConfig._();
 
-  // --- SUPABASE CONFIGURATION ---
-  static const String supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://xyzcompany.supabase.co',
-  );
+  // Helper to resolve key from dotenv or String.fromEnvironment or defaultValue
+  static String _getValue(String key, String defaultValue) {
+    if (dotenv.env.containsKey(key) && dotenv.env[key]!.isNotEmpty) {
+      return dotenv.env[key]!;
+    }
+    final envVal = String.fromEnvironment(key);
+    if (envVal.isNotEmpty) {
+      return envVal;
+    }
+    return defaultValue;
+  }
 
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key',
-  );
+  // --- SUPABASE CONFIGURATION ---
+  static String get supabaseUrl => _getValue(
+        'SUPABASE_URL',
+        'https://xyzcompany.supabase.co',
+      );
+
+  static String get supabaseAnonKey => _getValue(
+        'SUPABASE_ANON_KEY',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key',
+      );
 
   // --- GEOSPATIAL MAPS & TILES ---
-  static const String openStreetMapTileUrl = String.fromEnvironment(
-    'MAP_TILE_URL',
-    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  );
+  static String get openStreetMapTileUrl => _getValue(
+        'MAP_TILE_URL',
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      );
 
-  static const String mapboxApiKey = String.fromEnvironment(
-    'MAPBOX_API_KEY',
-    defaultValue: '',
-  );
+  static String get mapboxApiKey => _getValue(
+        'MAPBOX_API_KEY',
+        '',
+      );
 
   // --- PUSH NOTIFICATIONS ---
-  static const String firebaseFcmServerEndpoint = String.fromEnvironment(
-    'FCM_ENDPOINT',
-    defaultValue: 'https://fcm.googleapis.com/fcm/send',
-  );
+  static String get firebaseFcmServerEndpoint => _getValue(
+        'FCM_ENDPOINT',
+        'https://fcm.googleapis.com/fcm/send',
+      );
 
   // --- PAYMENT GATEWAY CONFIGURATION ---
-  static const String paymentGatewayBaseUrl = String.fromEnvironment(
-    'PAYMENT_GATEWAY_URL',
-    defaultValue: 'https://api.idrone.gt/v1/payments',
-  );
+  static String get paymentGatewayBaseUrl => _getValue(
+        'PAYMENT_GATEWAY_URL',
+        'https://api.idrone.gt/v1/payments',
+      );
 
-  static const String paymentGatewayPublicKey = String.fromEnvironment(
-    'PAYMENT_PUBLIC_KEY',
-    defaultValue: 'pk_live_idrone_guatemala_public_key',
-  );
+  static String get paymentGatewayPublicKey => _getValue(
+        'PAYMENT_PUBLIC_KEY',
+        'pk_live_idrone_guatemala_public_key',
+      );
 
   // --- EDGE FUNCTIONS & APIS ---
   static String get edgeFunctionsBaseUrl => '$supabaseUrl/functions/v1';

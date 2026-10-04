@@ -55,6 +55,6 @@ linux/flutter/ephemeral/
 *.freezed.dart
 
 # Environment variables
-.env
 .env.*
+!.env
 !.env.example
