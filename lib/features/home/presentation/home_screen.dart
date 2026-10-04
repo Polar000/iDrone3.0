@@ -1,5 +1,7 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/app_media_service.dart';
 
@@ -12,11 +14,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AppMediaService _mediaService = AppMediaService.instance;
+  String _displayName = 'Usuario';
+  String _userInitials = 'ID';
 
   @override
   void initState() {
     super.initState();
     _mediaService.addListener(_onMediaChanged);
+    _loadUserProfile();
   }
 
   @override
@@ -27,6 +32,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onMediaChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final fullName = (user.userMetadata?['full_name'] as String?)?.trim() ?? '';
+        final email = user.email?.trim() ?? '';
+
+        String name = fullName.isNotEmpty ? fullName : (email.isNotEmpty ? email.split('@').first : 'Usuario');
+
+        List<String> parts = name.split(' ').where((s) => s.isNotEmpty).toList();
+        String initials = 'ID';
+        if (parts.length >= 2) {
+          initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+        } else if (parts.isNotEmpty) {
+          initials = parts[0].substring(0, min(2, parts[0].length)).toUpperCase();
+        }
+
+        if (mounted) {
+          setState(() {
+            _displayName = parts.isNotEmpty ? parts.first : 'Usuario';
+            _userInitials = initials;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -60,12 +92,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-                        child: const CircleAvatar(
+                        child: CircleAvatar(
                           radius: 22,
                           backgroundColor: AppColors.deepForest,
                           child: Text(
-                            'BM',
-                            style: TextStyle(
+                            _userInitials,
+                            style: const TextStyle(
                               color: AppColors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -76,18 +108,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            'Hola, Bryan 👋',
-                            style: TextStyle(
+                            'Hola, $_displayName 👋',
+                            style: const TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
                               color: AppColors.dark,
                               letterSpacing: -0.3,
                             ),
                           ),
-                          SizedBox(height: 1),
-                          Text(
+                          const SizedBox(height: 1),
+                          const Text(
                             '¿Listo para trabajar tu campo?',
                             style: TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.w500),
                           ),
@@ -485,8 +517,6 @@ class _QuickServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imgUrl = AppMediaService.instance.getMediaUrl(imageKey, fallback: 'assets/images/$imageKey.png');
-
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -502,9 +532,10 @@ class _QuickServiceCard extends StatelessWidget {
           children: [
             // Dynamic Background Image
             Positioned.fill(
-              child: imgUrl.startsWith('http')
-                  ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.white))
-                  : Image.asset(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.white)),
+              child: AppMediaService.buildImageWidget(
+                imageKey,
+                fit: BoxFit.cover,
+              ),
             ),
             Positioned.fill(
               child: Container(
