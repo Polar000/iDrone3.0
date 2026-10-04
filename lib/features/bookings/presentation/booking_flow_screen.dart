@@ -104,6 +104,17 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     super.dispose();
   }
 
+  String _formatTo24HourTime(String timeStr) {
+    timeStr = timeStr.trim().toUpperCase();
+    if (timeStr.contains('06:00 AM')) return '06:00:00';
+    if (timeStr.contains('08:00 AM')) return '08:00:00';
+    if (timeStr.contains('09:00 AM')) return '09:00:00';
+    if (timeStr.contains('11:00 AM')) return '11:00:00';
+    if (timeStr.contains('02:00 PM')) return '14:00:00';
+    if (timeStr.contains('05:00 PM')) return '17:00:00';
+    return '08:00:00';
+  }
+
   void _applyCoupon() {
     final code = _couponController.text.trim().toUpperCase();
     if (code == 'IDRONE2026' || code == 'CAMPO10') {
@@ -148,6 +159,19 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
   }
 
   Future<void> _confirmAndSaveBooking() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para confirmar la reserva.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSavingBooking = true);
     final areaManzanas = AreaConverter.squareMetersToManzanas(_areaM2);
     final basePricePerMz = 150.0;
@@ -160,17 +184,14 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
 
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      // 1. Resolve or Create active Farm UUID
+      // 1. Resolve or Create active Farm UUID for user
       String farmId;
-      final farmRes = await supabase.from('farms').select('id').limit(1);
+      final farmRes = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
       if (farmRes is List && farmRes.isNotEmpty) {
         farmId = farmRes.first['id'];
       } else {
         final newFarm = await supabase.from('farms').insert({
-          'owner_id': user?.id,
+          'owner_id': user.id,
           'name': 'Finca El Paraíso',
           'description': 'Finca principal registrada',
           'location': 'Jutiapa, Guatemala',
@@ -178,7 +199,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         farmId = newFarm['id'];
       }
 
-      // 2. Resolve or Create active Field UUID
+      // 2. Resolve or Create active Field UUID for farm
       String fieldId;
       final fieldRes = await supabase.from('fields').select('id').eq('farm_id', farmId).limit(1);
       if (fieldRes is List && fieldRes.isNotEmpty) {
@@ -201,14 +222,19 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         serviceId = serviceRes.first['id'];
       }
 
+      // Parse time window into 24-hour HH:mm:ss for Postgres TIME column
+      final rawParts = _timeWindow.split(' - ');
+      final startTime24 = _formatTo24HourTime(rawParts.first);
+      final endTime24 = _formatTo24HourTime(rawParts.last);
+
       final bookingRecord = {
-        'customer_id': user?.id,
+        'customer_id': user.id,
         'farm_id': farmId,
         'field_id': fieldId,
         'service_id': serviceId,
         'scheduled_date': _selectedDate.toIso8601String().split('T').first,
-        'time_window_start': _timeWindow.split(' - ').first,
-        'time_window_end': _timeWindow.split(' - ').last,
+        'time_window_start': startTime24,
+        'time_window_end': endTime24,
         'area_m2': _areaM2,
         'area_ha': AreaConverter.squareMetersToHectares(_areaM2),
         'area_manzanas': areaManzanas,
@@ -412,7 +438,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             final service = _services[index];
             final isSelected = _selectedService == service['id'];
             final color = service['color'] as Color;
-            final imgUrl = _mediaService.getMediaUrl(service['mediaKey'] as String);
 
             return Container(
               clipBehavior: Clip.antiAlias,
@@ -438,21 +463,12 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: imgUrl.startsWith('http')
-                            ? Image.network(
-                                imgUrl,
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) => Container(width: 60, height: 60, color: color.withValues(alpha: 0.15)),
-                              )
-                            : Image.asset(
-                                imgUrl,
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) => Container(width: 60, height: 60, color: color.withValues(alpha: 0.15)),
-                              ),
+                        child: AppMediaService.buildImageWidget(
+                          service['mediaKey'] as String,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -515,7 +531,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           itemBuilder: (context, index) {
             final crop = _crops[index];
             final isSelected = _selectedCrop == crop['name'];
-            final imgUrl = _mediaService.getMediaUrl(crop['mediaKey'] as String);
 
             return Container(
               clipBehavior: Clip.antiAlias,
@@ -538,9 +553,10 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: imgUrl.startsWith('http')
-                          ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.cream))
-                          : Image.asset(imgUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: AppColors.cream)),
+                      child: AppMediaService.buildImageWidget(
+                        crop['mediaKey'] as String,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     Positioned.fill(
                       child: Container(
@@ -570,7 +586,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                           Text(
                             crop['name'] as String,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                               color: AppColors.white,

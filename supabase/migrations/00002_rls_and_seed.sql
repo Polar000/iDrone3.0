@@ -129,3 +129,25 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 INSERT INTO public.branding (id, primary_color, secondary_color, accent_color, active) VALUES
 ('00000000-0000-0000-0000-000000000501', '#063F35', '#159A6B', '#8DDE3F', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- AUTH USER TRIGGER FOR AUTOMATIC PROFILE CREATION
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, email, phone, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', 'Usuario'),
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'phone', ''),
+    'customer'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

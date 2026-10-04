@@ -121,23 +121,33 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _saveParcelToSupabase(String name, double areaM2) async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para guardar parcelas en la base de datos.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSavingToDb = true);
     final areaManzanas = AreaConverter.squareMetersToManzanas(areaM2);
     final areaHectares = AreaConverter.squareMetersToHectares(areaM2);
 
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      // 1. Get or Create active Farm for user
+      // 1. Get or Create active Farm for authenticated user
       String farmId;
-      final existingFarms = await supabase.from('farms').select('id').limit(1);
+      final existingFarms = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
 
       if (existingFarms is List && existingFarms.isNotEmpty) {
         farmId = existingFarms.first['id'];
       } else {
         final newFarm = await supabase.from('farms').insert({
-          'owner_id': user?.id,
+          'owner_id': user.id,
           'name': 'Finca El Paraíso',
           'description': 'Finca principal registrada en iDrone',
           'location': 'Jutiapa, Guatemala',
@@ -150,7 +160,7 @@ class _MapScreenState extends State<MapScreen> {
       final firstPoint = '${_polygonPoints.first.longitude} ${_polygonPoints.first.latitude}';
       final wktPolygon = 'SRID=4326;POLYGON(($coords, $firstPoint))';
 
-      // 3. Insert parcel into fields table with valid farm_id
+      // 3. Insert parcel into fields table with valid farm_id and owner_id
       await supabase.from('fields').insert({
         'farm_id': farmId,
         'name': name,

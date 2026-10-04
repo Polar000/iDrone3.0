@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class AppMediaService extends ChangeNotifier {
@@ -9,7 +10,7 @@ class AppMediaService extends ChangeNotifier {
 
   AppMediaService._internal();
 
-  // Database Media Records Map (key -> image URL or storage path)
+  // Database Media Records Map (key -> image URL, base64 data URL or storage path)
   final Map<String, String> _mediaRegistry = {
     'splash_bg': 'assets/images/splash_bg.png',
     'logo_dark': 'assets/images/idrone_logo_dark.png',
@@ -42,4 +43,63 @@ class AppMediaService extends ChangeNotifier {
   }
 
   Map<String, String> getAllMedia() => Map.unmodifiable(_mediaRegistry);
+
+  /// Centralized, safe image builder widget for rendering Data URLs, Network URLs, or Asset paths.
+  static Widget buildImageWidget(
+    String keyOrUrl, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+    Widget? errorWidget,
+  }) {
+    final service = AppMediaService.instance;
+    final resolved = keyOrUrl.contains('/') || keyOrUrl.startsWith('data:')
+        ? keyOrUrl
+        : service.getMediaUrl(keyOrUrl);
+
+    final defaultFallback = errorWidget ??
+        Container(
+          width: width,
+          height: height,
+          color: const Color(0xFFE8F4EC),
+          child: const Icon(Icons.image_outlined, color: Color(0xFF159A6B)),
+        );
+
+    // 1. Base64 Data URL
+    if (resolved.startsWith('data:image')) {
+      try {
+        final base64Str = resolved.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (c, e, s) => defaultFallback,
+        );
+      } catch (_) {
+        return defaultFallback;
+      }
+    }
+
+    // 2. Remote Network URL
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+      return Image.network(
+        resolved,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (c, e, s) => defaultFallback,
+      );
+    }
+
+    // 3. Local Asset Path
+    return Image.asset(
+      resolved,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (c, e, s) => defaultFallback,
+    );
+  }
 }
