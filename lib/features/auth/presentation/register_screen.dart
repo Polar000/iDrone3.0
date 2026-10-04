@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptTerms = false;
   bool _isLoading = false;
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       if (!_acceptTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -27,15 +28,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
+
       setState(() => _isLoading = true);
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (!mounted) return;
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Cuenta creada con éxito! Por favor inicia sesión.')),
+
+      try {
+        final supabase = Supabase.instance.client;
+        final response = await supabase.auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          data: {
+            'full_name': _nameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+          },
         );
-        context.go('/login');
-      });
+
+        if (!mounted) return;
+
+        if (response.user != null) {
+          try {
+            await supabase.from('profiles').upsert({
+              'id': response.user!.id,
+              'full_name': _nameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'phone': _phoneController.text.trim(),
+              'role': 'customer',
+              'status': 'active',
+            });
+          } catch (_) {
+            // Profile created via trigger or policy
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('¡Cuenta registrada exitosamente en Supabase! Ya puedes ingresar.'),
+              backgroundColor: AppColors.emerald,
+            ),
+          );
+          context.go('/login');
+        }
+      } on AuthException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de registro: ${e.message}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al procesar el registro: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 

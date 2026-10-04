@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
 import '../../../core/services/work_duration_calculator.dart';
@@ -27,6 +28,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _isSatellite = true;
   bool _showExistingParcels = true;
   bool _showNdviOverlay = false;
+  bool _isSavingToDb = false;
 
   final List<LatLng> _polygonPoints = [];
 
@@ -116,6 +118,72 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _polygonPoints.clear();
     });
+  }
+
+  Future<void> _saveParcelToSupabase(String name, double areaM2) async {
+    setState(() => _isSavingToDb = true);
+    final areaManzanas = AreaConverter.squareMetersToManzanas(areaM2);
+    final areaHectares = AreaConverter.squareMetersToHectares(areaM2);
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      // 1. Get or Create active Farm for user
+      String farmId;
+      final existingFarms = await supabase.from('farms').select('id').limit(1);
+
+      if (existingFarms is List && existingFarms.isNotEmpty) {
+        farmId = existingFarms.first['id'];
+      } else {
+        final newFarm = await supabase.from('farms').insert({
+          'owner_id': user?.id,
+          'name': 'Finca El Paraíso',
+          'description': 'Finca principal registrada en iDrone',
+          'location': 'Jutiapa, Guatemala',
+        }).select('id').single();
+        farmId = newFarm['id'];
+      }
+
+      // 2. Construct WKT polygon string
+      final coords = _polygonPoints.map((p) => '${p.longitude} ${p.latitude}').join(', ');
+      final firstPoint = '${_polygonPoints.first.longitude} ${_polygonPoints.first.latitude}';
+      final wktPolygon = 'SRID=4326;POLYGON(($coords, $firstPoint))';
+
+      // 3. Insert parcel into fields table with valid farm_id
+      await supabase.from('fields').insert({
+        'farm_id': farmId,
+        'name': name,
+        'geometry': wktPolygon,
+        'area_m2': areaM2,
+        'area_ha': areaHectares,
+        'area_manzanas': areaManzanas,
+        'notes': 'Creada desde el mapa interactivo iDrone.',
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ Parcela "$name" guardada exitosamente en Supabase (${areaManzanas.toStringAsFixed(2)} mz).'),
+          backgroundColor: AppColors.emerald,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar la parcela en Supabase: ${e.toString()}'),
+          backgroundColor: Colors.redAccent,
+          action: SnackBarAction(
+            label: 'Reintentar',
+            textColor: AppColors.white,
+            onPressed: () => _saveParcelToSupabase(name, areaM2),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingToDb = false);
+    }
   }
 
   @override
@@ -477,29 +545,26 @@ class _MapScreenState extends State<MapScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: _polygonPoints.length >= 3 ? 3 : 0,
                       ),
-                      onPressed: _polygonPoints.length >= 3
-                          ? () {
+                      onPressed: (_polygonPoints.length >= 3 && !_isSavingToDb)
+                          ? () async {
                               final name = _parcelNameController.text.trim().isEmpty
                                   ? 'Nueva Parcela'
                                   : _parcelNameController.text.trim();
+
+                              await _saveParcelToSupabase(name, currentAreaM2);
+
                               if (widget.onPolygonSaved != null) {
                                 widget.onPolygonSaved!(_polygonPoints, currentAreaM2, name);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Parcela "$name" guardada con ${areaManzanas.toStringAsFixed(2)} manzanas (~${durationResult.formattedTotalTime} de vuelo).',
-                                    ),
-                                  ),
-                                );
                               }
                             }
                           : null,
-                      icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
+                      icon: _isSavingToDb
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 2))
+                          : const Icon(Icons.check_circle_outline_rounded, size: 20),
                       label: Text(
                         _polygonPoints.length < 3
                             ? 'Toca el mapa para agregar puntos (mín. 3)'
-                            : 'Guardar Parcela',
+                            : (_isSavingToDb ? 'Guardando en Supabase...' : 'Guardar Parcela'),
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),

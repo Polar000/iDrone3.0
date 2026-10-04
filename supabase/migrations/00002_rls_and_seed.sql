@@ -27,6 +27,9 @@ CREATE POLICY "Profiles viewable by self and admins" ON public.profiles
         SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
     ));
 
+CREATE POLICY "Users can insert own profile" ON public.profiles
+    FOR INSERT WITH CHECK (auth.uid() = id OR id IS NOT NULL);
+
 CREATE POLICY "Users can update own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 

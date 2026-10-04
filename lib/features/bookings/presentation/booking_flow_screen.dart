@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
 import '../../../core/services/pricing_engine.dart';
@@ -20,6 +21,7 @@ class BookingFlowScreen extends StatefulWidget {
 class _BookingFlowScreenState extends State<BookingFlowScreen> {
   final AppMediaService _mediaService = AppMediaService.instance;
   int _currentStep = 0;
+  bool _isSavingBooking = false;
 
   // Selected State
   String? _selectedService = 'fumigation';
@@ -131,7 +133,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         _currentStep++;
       });
     } else {
-      _confirmBooking();
+      _confirmAndSaveBooking();
     }
   }
 
@@ -145,13 +147,108 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     }
   }
 
-  void _confirmBooking() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildConfirmationBottomSheet(),
+  Future<void> _confirmAndSaveBooking() async {
+    setState(() => _isSavingBooking = true);
+    final areaManzanas = AreaConverter.squareMetersToManzanas(_areaM2);
+    final basePricePerMz = 150.0;
+    final quote = PricingEngineService.calculateQuote(
+      areaM2: _areaM2,
+      pricePerManzana: basePricePerMz,
+      travelFee: 100.0,
+      discount: _couponApplied ? 150.0 : 0.0,
+      depositPercentage: 25.0,
     );
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      // 1. Resolve or Create active Farm UUID
+      String farmId;
+      final farmRes = await supabase.from('farms').select('id').limit(1);
+      if (farmRes is List && farmRes.isNotEmpty) {
+        farmId = farmRes.first['id'];
+      } else {
+        final newFarm = await supabase.from('farms').insert({
+          'owner_id': user?.id,
+          'name': 'Finca El Paraíso',
+          'description': 'Finca principal registrada',
+          'location': 'Jutiapa, Guatemala',
+        }).select('id').single();
+        farmId = newFarm['id'];
+      }
+
+      // 2. Resolve or Create active Field UUID
+      String fieldId;
+      final fieldRes = await supabase.from('fields').select('id').eq('farm_id', farmId).limit(1);
+      if (fieldRes is List && fieldRes.isNotEmpty) {
+        fieldId = fieldRes.first['id'];
+      } else {
+        final newField = await supabase.from('fields').insert({
+          'farm_id': farmId,
+          'name': _parcelName,
+          'area_m2': _areaM2,
+          'area_ha': AreaConverter.squareMetersToHectares(_areaM2),
+          'area_manzanas': areaManzanas,
+        }).select('id').single();
+        fieldId = newField['id'];
+      }
+
+      // 3. Resolve active Service UUID
+      String serviceId = '00000000-0000-0000-0000-000000000201'; // Default Fumigation Seed UUID
+      final serviceRes = await supabase.from('services').select('id').eq('service_type', _selectedService ?? 'fumigation').limit(1);
+      if (serviceRes is List && serviceRes.isNotEmpty) {
+        serviceId = serviceRes.first['id'];
+      }
+
+      final bookingRecord = {
+        'customer_id': user?.id,
+        'farm_id': farmId,
+        'field_id': fieldId,
+        'service_id': serviceId,
+        'scheduled_date': _selectedDate.toIso8601String().split('T').first,
+        'time_window_start': _timeWindow.split(' - ').first,
+        'time_window_end': _timeWindow.split(' - ').last,
+        'area_m2': _areaM2,
+        'area_ha': AreaConverter.squareMetersToHectares(_areaM2),
+        'area_manzanas': areaManzanas,
+        'price_per_unit': basePricePerMz,
+        'subtotal': quote.subtotal,
+        'travel_fee': quote.travelFee,
+        'discount': quote.discount,
+        'total': quote.total,
+        'deposit_percentage': 25.0,
+        'deposit_amount': quote.depositAmount,
+        'balance_amount': quote.balanceAmount,
+        'status': 'confirmed',
+        'customer_notes': 'Reserva confirmada en iDrone.',
+      };
+
+      await supabase.from('bookings').insert(bookingRecord);
+
+      if (!mounted) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => _buildConfirmationBottomSheet(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al registrar la reserva en Supabase: ${e.toString()}'),
+          backgroundColor: Colors.redAccent,
+          action: SnackBarAction(
+            label: 'Reintentar',
+            textColor: AppColors.white,
+            onPressed: _confirmAndSaveBooking,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingBooking = false);
+    }
   }
 
   @override
@@ -243,21 +340,27 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 3,
                       ),
-                      onPressed: _nextStep,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _currentStep == 4 ? 'Confirmar y Pagar' : 'Siguiente',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            _currentStep == 4 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
-                            size: 18,
-                          ),
-                        ],
-                      ),
+                      onPressed: _isSavingBooking ? null : _nextStep,
+                      child: _isSavingBooking
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _currentStep == 4 ? 'Confirmar y Pagar' : 'Siguiente',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  _currentStep == 4 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ],
@@ -695,6 +798,11 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
       depositPercentage: 25.0,
     );
 
+    final serviceItem = _services.firstWhere(
+      (s) => s['id'] == _selectedService,
+      orElse: () => _services.first,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -750,7 +858,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    _buildTicketRow('Servicio', _services.firstWhere((s) => s['id'] == _selectedService)['title']),
+                    _buildTicketRow('Servicio', serviceItem['title'] as String),
                     _buildTicketRow('Cultivo', _selectedCrop!),
                     _buildTicketRow('Área calculada', '${areaManzanas.toStringAsFixed(2)} manzanas'),
                     _buildTicketRow('Precio por manzana', 'Q${basePricePerMz.toStringAsFixed(2)}'),
@@ -1082,7 +1190,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Tu solicitud ha sido registrada en nuestro sistema de despacho de drones.',
+            'Tu solicitud ha sido registrada exitosamente en Supabase y asignada al sistema de despacho.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.muted, fontSize: 13),
           ),
