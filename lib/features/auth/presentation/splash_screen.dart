@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/app_media_service.dart';
 
@@ -41,6 +42,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        context.go('/home');
+        return;
+      }
+    } catch (_) {}
+
     final prefs = await SharedPreferences.getInstance();
     final onboardingSeen = prefs.getBool('onboarding_seen') ?? false;
 
@@ -66,34 +75,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background Image (Network or Local Fallback Asset)
-          bgUrl.startsWith('http')
-              ? Image.network(
-                  bgUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.deepForest, AppColors.dark],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                )
-              : Image.asset(
-                  bgUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.deepForest, AppColors.dark],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
+          // Background Image
+          AppMediaService.buildImageWidget(
+            bgUrl,
+            fit: BoxFit.cover,
+            errorWidget: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.deepForest, AppColors.dark],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
+              ),
+            ),
+          ),
 
           // Gradient Overlay
           Container(
@@ -106,19 +101,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: ScaleTransition(
                 scale: _scaleAnimation,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: _getAlignmentCenter(),
                   children: [
-                    logoUrl.startsWith('http')
-                        ? Image.network(
-                            logoUrl,
-                            height: 120,
-                            errorBuilder: (context, error, stackTrace) => _buildLogoFallback(),
-                          )
-                        : Image.asset(
-                            logoUrl,
-                            height: 120,
-                            errorBuilder: (context, error, stackTrace) => _buildLogoFallback(),
-                          ),
+                    AppMediaService.buildImageWidget(
+                      logoUrl,
+                      height: 120,
+                      errorWidget: _buildLogoFallback(),
+                    ),
                     const SizedBox(height: 16),
                     RichText(
                       text: const TextSpan(
@@ -162,6 +151,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
   }
+
+  MainAxisAlignment _getAlignmentCenter() => MainAxisAlignment.center;
 
   Widget _buildLogoFallback() {
     return Container(

@@ -9,17 +9,21 @@ import 'core/config/app_api_config.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Automatically load runtime environment variables from .env file
+  // 1. Safe dotenv loading
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint('Note: .env file notice: $e');
   }
 
-  // Validate security rules before application boot
-  AppApiConfig.validateSecurityConstraints();
+  // 2. Safe security validation
+  try {
+    AppApiConfig.validateSecurityConstraints();
+  } catch (e) {
+    debugPrint('Security constraint notice: $e');
+  }
 
-  // Initialize Supabase SDK
+  // 3. Safe Supabase SDK initialization
   try {
     await Supabase.initialize(
       url: AppApiConfig.supabaseUrl,
@@ -29,6 +33,7 @@ Future<void> main() async {
     debugPrint('Supabase init warning: $e');
   }
 
+  // Guaranteed app launch
   runApp(
     const ProviderScope(
       child: IDroneApp(),

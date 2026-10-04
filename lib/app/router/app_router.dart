@@ -46,14 +46,19 @@ final router = GoRouter(
       isAuthenticated = false;
     }
 
-    final isPublicRoute = state.matchedLocation == '/login' ||
-        state.matchedLocation == '/register' ||
-        state.matchedLocation == '/' ||
-        state.matchedLocation == '/onboarding';
+    final isLoginOrRegister = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+    final isPublicRoute = isLoginOrRegister || state.matchedLocation == '/' || state.matchedLocation == '/onboarding';
 
+    // 1. Unauthenticated users trying to access protected routes -> /login
     if (!isAuthenticated && !isPublicRoute) {
       return '/login';
     }
+
+    // 2. Authenticated users trying to access /login or /register -> /home
+    if (isAuthenticated && isLoginOrRegister) {
+      return '/home';
+    }
+
     return null;
   },
   routes: [
