@@ -53,11 +53,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {}
   }
 
-  Future<void> _handleSignOut() async {
-    try {
-      await Supabase.instance.client.auth.signOut();
-    } catch (_) {}
-    if (mounted) context.go('/login');
+  Future<void> _confirmAndSignOut() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.logout_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text('Cerrar sesión', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro de que deseas cerrar tu sesión en iDrone?',
+          style: TextStyle(color: AppColors.muted, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sí, Cerrar sesión', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
+      if (mounted) context.go('/login');
+    }
   }
 
   @override
@@ -66,6 +101,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.cream,
       appBar: AppBar(
         title: const Text('Mi Perfil'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            tooltip: 'Cerrar sesión',
+            onPressed: _confirmAndSignOut,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -88,17 +130,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildProfileOption(Icons.admin_panel_settings_outlined, 'Panel de Administración (Web/Admin)', () => context.push('/admin')),
             _buildProfileOption(Icons.settings_outlined, 'Configuración', () {}),
             _buildProfileOption(Icons.privacy_tip_outlined, 'Privacidad y Términos', () {}),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent),
-                ),
-                onPressed: _handleSignOut,
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('Cerrar sesión'),
+            const SizedBox(height: 16),
+
+            // Prominent Red Logout Tile
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                title: const Text('Cerrar sesión', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.redAccent),
+                onTap: _confirmAndSignOut,
               ),
             ),
           ],
