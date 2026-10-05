@@ -46,7 +46,12 @@ class _MapScreenState extends State<MapScreen> {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
     if (user == null) {
-      _loadFallbackParcels();
+      if (mounted) {
+        setState(() {
+          _existingParcels = [];
+          _isLoadingParcels = false;
+        });
+      }
       return;
     }
 
@@ -76,53 +81,77 @@ class _MapScreenState extends State<MapScreen> {
 
       if (mounted) {
         setState(() {
-          _existingParcels = loaded.isNotEmpty ? loaded : _getFallbackParcelsList();
+          _existingParcels = loaded;
           _isLoadingParcels = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _loadFallbackParcels();
+          _existingParcels = [];
           _isLoadingParcels = false;
         });
       }
     }
   }
 
-  void _loadFallbackParcels() {
-    _existingParcels = _getFallbackParcelsList();
-  }
+  Future<void> _deleteParcelFromSupabase(String parcelId, String parcelName) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('¿Eliminar Parcela?', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.dark)),
+        content: Text('¿Estás seguro de que deseas eliminar "$parcelName"? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.muted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
 
-  List<Map<String, dynamic>> _getFallbackParcelsList() {
-    return [
-      {
-        'id': 'demo-1',
-        'name': 'Parcela Norte',
-        'farm': 'Finca El Paraíso',
-        'crop': 'Maíz',
-        'areaM2': 88060.0,
-        'points': [
-          const LatLng(14.2860, -89.8930),
-          const LatLng(14.2860, -89.8910),
-          const LatLng(14.2840, -89.8910),
-          const LatLng(14.2840, -89.8930),
-        ],
-      },
-      {
-        'id': 'demo-2',
-        'name': 'Lote 3',
-        'farm': 'Finca San José',
-        'crop': 'Melón',
-        'areaM2': 59406.0,
-        'points': [
-          const LatLng(14.2790, -89.8990),
-          const LatLng(14.2790, -89.8970),
-          const LatLng(14.2770, -89.8970),
-          const LatLng(14.2770, -89.8990),
-        ],
-      },
-    ];
+    if (confirm != true) return;
+
+    final supabase = Supabase.instance.client;
+    try {
+      await supabase.from('fields').delete().eq('id', parcelId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Parcela "$parcelName" eliminada correctamente.'),
+            backgroundColor: AppColors.emerald,
+          ),
+        );
+        setState(() {
+          if (_editingParcelId == parcelId) {
+            _editingParcelId = null;
+            _polygonPoints.clear();
+          }
+        });
+        await _fetchParcelsFromSupabase();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar la parcela: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   List<LatLng> _parseWktPolygon(String wkt) {
@@ -430,35 +459,53 @@ class _MapScreenState extends State<MapScreen> {
                       final centerLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
                       final centerLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
                       final center = LatLng(centerLat, centerLng);
+                      final pId = parcel['id']?.toString() ?? '';
+                      final pName = parcel['name'] as String? ?? 'Parcela';
 
                       return Marker(
                         point: center,
-                        width: 130,
-                        height: 38,
-                        child: GestureDetector(
-                          onTap: () => _selectParcelForEditing(parcel),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.dark.withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.freshGreen, width: 1.2),
-                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.edit_location_alt_rounded, color: AppColors.freshGreen, size: 14),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    parcel['name'] as String,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
+                        width: 170,
+                        height: 42,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.dark.withValues(alpha: 0.90),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.freshGreen, width: 1.2),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () => _selectParcelForEditing(parcel),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.edit_location_alt_rounded, color: AppColors.freshGreen, size: 15),
+                                    const SizedBox(width: 4),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 85),
+                                      child: Text(
+                                        pName,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(height: 14, width: 1, color: Colors.white24),
+                              const SizedBox(width: 2),
+                              InkWell(
+                                onTap: () => _deleteParcelFromSupabase(pId, pName),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(2.0),
+                                  child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 16),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
