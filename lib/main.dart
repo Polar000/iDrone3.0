@@ -23,30 +23,14 @@ Future<void> main() async {
     debugPrint('Security constraint notice: $e');
   }
 
-  // 3. Supabase SDK initialization
-  // Uses a valid JWT payload format for offline/fallback initialization to ensure Supabase.instance is never null
-  const fallbackUrl = 'https://idrone-guatemala.supabase.co';
-  const fallbackAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlkcm9uZSIsInJvbGUiOiJhb24iLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.dummy_signature_key_for_idrone';
-
+  // 3. Supabase SDK initialization directly reading from .env / AppApiConfig
   try {
-    final url = AppApiConfig.supabaseUrl.contains('xyzcompany') ? fallbackUrl : AppApiConfig.supabaseUrl;
-    final anonKey = AppApiConfig.supabaseAnonKey.contains('dummy_anon_key') ? fallbackAnonKey : AppApiConfig.supabaseAnonKey;
-
     await Supabase.initialize(
-      url: url,
-      anonKey: anonKey,
+      url: AppApiConfig.supabaseUrl,
+      anonKey: AppApiConfig.supabaseAnonKey,
     );
   } catch (e) {
-    debugPrint('Supabase main init notice: $e');
-    try {
-      await Supabase.initialize(
-        url: fallbackUrl,
-        anonKey: fallbackAnonKey,
-      );
-    } catch (fallbackError) {
-      debugPrint('Supabase fallback init notice: $fallbackError');
-    }
+    debugPrint('Supabase initialization notice: $e');
   }
 
   // Guaranteed app launch
