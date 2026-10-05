@@ -9,11 +9,15 @@ import 'core/config/app_api_config.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Safe dotenv loading
+  // 1. Safe dotenv loading with fallback to .env.example
   try {
     await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint('Note: .env file notice: $e');
+  } catch (_) {
+    try {
+      await dotenv.load(fileName: ".env.example");
+    } catch (e) {
+      debugPrint('Note: .env file notice: $e');
+    }
   }
 
   // 2. Safe security validation
