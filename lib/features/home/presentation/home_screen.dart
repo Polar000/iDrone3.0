@@ -16,12 +16,40 @@ class _HomeScreenState extends State<HomeScreen> {
   final AppMediaService _mediaService = AppMediaService.instance;
   String _displayName = 'Usuario';
   String _userInitials = 'ID';
+  List<Map<String, dynamic>> _userBookings = [];
+  bool _isLoadingBookings = true;
 
   @override
   void initState() {
     super.initState();
     _mediaService.addListener(_onMediaChanged);
     _loadUserProfile();
+    _loadUserBookings();
+  }
+
+  Future<void> _loadUserBookings() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final data = await Supabase.instance.client
+            .from('bookings')
+            .select('*, fields(name, farms(name)), services(name), crops(name)')
+            .eq('customer_id', user.id)
+            .order('created_at', ascending: false)
+            .limit(2);
+
+        if (mounted) {
+          setState(() {
+            _userBookings = List<Map<String, dynamic>>.from(data);
+            _isLoadingBookings = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoadingBookings = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingBookings = false);
+    }
   }
 
   @override
@@ -434,68 +462,125 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: AppColors.modernShadow(blur: 16),
-                    border: Border.all(color: AppColors.emerald.withValues(alpha: 0.15)),
-                  ),
-                  child: InkWell(
-                    onTap: () => context.push('/my-services'),
-                    borderRadius: BorderRadius.circular(22),
+                if (_isLoadingBookings)
+                  const Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: AppColors.softGreen,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(Icons.agriculture_rounded, color: AppColors.deepForest, size: 28),
+                      padding: EdgeInsets.all(24.0),
+                      child: CircularProgressIndicator(color: AppColors.emerald),
+                    ),
+                  )
+                else if (_userBookings.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: AppColors.softGreen),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, size: 36, color: AppColors.muted),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Aún no tienes reservas programadas',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.dark, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Solicita tu primer servicio agrícola de precisión.',
+                          style: TextStyle(color: AppColors.muted, fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: () => context.push('/booking/flow'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.emerald,
+                            side: const BorderSide(color: AppColors.emerald),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  'Finca El Paraíso — Parcela Norte',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: AppColors.dark,
+                          child: const Text('Solicitar servicio'),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Column(
+                    children: _userBookings.map((booking) {
+                      final farmName = booking['fields']?['farms']?['name'] ?? 'Finca';
+                      final fieldName = booking['fields']?['name'] ?? 'Parcela';
+                      final serviceName = booking['services']?['name'] ?? 'Servicio';
+                      final cropName = booking['crops']?['name'] ?? 'Cultivo';
+                      final area = booking['area_manzanas'] ?? booking['area_ha'] ?? '0';
+                      final status = booking['status'] ?? 'Pendiente';
+                      final scheduled = booking['scheduled_date'] ?? 'Por programar';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: AppColors.modernShadow(blur: 16),
+                          border: Border.all(color: AppColors.emerald.withValues(alpha: 0.15)),
+                        ),
+                        child: InkWell(
+                          onTap: () => context.push('/my-services'),
+                          borderRadius: BorderRadius.circular(22),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.softGreen,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(Icons.agriculture_rounded, color: AppColors.deepForest, size: 28),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '$farmName — $fieldName',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: AppColors.dark,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '$serviceName • $cropName • $area mz',
+                                        style: const TextStyle(
+                                          color: AppColors.muted,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Estado: $status • $scheduled',
+                                        style: const TextStyle(
+                                          color: AppColors.deepForest,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Fumigación • Maíz • 12.60 manzanas',
-                                  style: TextStyle(
-                                    color: AppColors.muted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Programado: Mañana, 08:00 AM • ~49 min',
-                                  style: TextStyle(
-                                    color: AppColors.deepForest,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
+                                const Icon(Icons.chevron_right_rounded, size: 24, color: AppColors.muted),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, size: 24, color: AppColors.muted),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                ),
               ],
             ),
           ),
