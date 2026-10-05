@@ -32,34 +32,135 @@ class _MapScreenState extends State<MapScreen> {
 
   final List<LatLng> _polygonPoints = [];
 
-  final List<Map<String, dynamic>> _existingParcels = [
-    {
-      'name': 'Parcela Norte',
-      'farm': 'Finca El Paraíso',
-      'crop': 'Maíz',
-      'areaM2': 88060.0,
-      'center': const LatLng(14.2850, -89.8920),
-      'points': [
-        const LatLng(14.2860, -89.8930),
-        const LatLng(14.2860, -89.8910),
-        const LatLng(14.2840, -89.8910),
-        const LatLng(14.2840, -89.8930),
-      ],
-    },
-    {
-      'name': 'Lote 3',
-      'farm': 'Finca San José',
-      'crop': 'Melón',
-      'areaM2': 59406.0,
-      'center': const LatLng(14.2780, -89.8980),
-      'points': [
-        const LatLng(14.2790, -89.8990),
-        const LatLng(14.2790, -89.8970),
-        const LatLng(14.2770, -89.8970),
-        const LatLng(14.2770, -89.8990),
-      ],
-    },
-  ];
+  List<Map<String, dynamic>> _existingParcels = [];
+  bool _isLoadingParcels = false;
+  String? _editingParcelId;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchParcelsFromSupabase();
+  }
+
+  Future<void> _fetchParcelsFromSupabase() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      _loadFallbackParcels();
+      return;
+    }
+
+    setState(() => _isLoadingParcels = true);
+
+    try {
+      final response = await supabase
+          .from('fields')
+          .select('id, name, geometry, area_m2, farm:farms(name)')
+          .order('created_at', ascending: false);
+
+      final List<Map<String, dynamic>> loaded = [];
+
+      for (final item in response as List) {
+        final rawGeom = item['geometry']?.toString() ?? '';
+        final points = _parseWktPolygon(rawGeom);
+        if (points.isNotEmpty) {
+          loaded.add({
+            'id': item['id'],
+            'name': item['name'] ?? 'Parcela sin nombre',
+            'farm': item['farm'] != null ? item['farm']['name'] : 'Finca Principal',
+            'areaM2': (item['area_m2'] as num?)?.toDouble() ?? 0.0,
+            'points': points,
+          });
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _existingParcels = loaded.isNotEmpty ? loaded : _getFallbackParcelsList();
+          _isLoadingParcels = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loadFallbackParcels();
+          _isLoadingParcels = false;
+        });
+      }
+    }
+  }
+
+  void _loadFallbackParcels() {
+    _existingParcels = _getFallbackParcelsList();
+  }
+
+  List<Map<String, dynamic>> _getFallbackParcelsList() {
+    return [
+      {
+        'id': 'demo-1',
+        'name': 'Parcela Norte',
+        'farm': 'Finca El Paraíso',
+        'crop': 'Maíz',
+        'areaM2': 88060.0,
+        'points': [
+          const LatLng(14.2860, -89.8930),
+          const LatLng(14.2860, -89.8910),
+          const LatLng(14.2840, -89.8910),
+          const LatLng(14.2840, -89.8930),
+        ],
+      },
+      {
+        'id': 'demo-2',
+        'name': 'Lote 3',
+        'farm': 'Finca San José',
+        'crop': 'Melón',
+        'areaM2': 59406.0,
+        'points': [
+          const LatLng(14.2790, -89.8990),
+          const LatLng(14.2790, -89.8970),
+          const LatLng(14.2770, -89.8970),
+          const LatLng(14.2770, -89.8990),
+        ],
+      },
+    ];
+  }
+
+  List<LatLng> _parseWktPolygon(String wkt) {
+    try {
+      if (!wkt.contains('POLYGON')) return [];
+      final startIndex = wkt.indexOf('((');
+      final endIndex = wkt.indexOf('))');
+      if (startIndex == -1 || endIndex == -1) return [];
+
+      final content = wkt.substring(startIndex + 2, endIndex);
+      final pairs = content.split(',');
+      final List<LatLng> result = [];
+
+      for (final pair in pairs) {
+        final coords = pair.trim().split(' ');
+        if (coords.length >= 2) {
+          final lon = double.parse(coords[0]);
+          final lat = double.parse(coords[1]);
+          result.add(LatLng(lat, lon));
+        }
+      }
+      return result;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  void _selectParcelForEditing(Map<String, dynamic> parcel) {
+    setState(() {
+      _editingParcelId = parcel['id']?.toString();
+      _parcelNameController.text = parcel['name'] as String;
+      _polygonPoints.clear();
+      _polygonPoints.addAll(List<LatLng>.from(parcel['points'] as List));
+    });
+    if ((parcel['points'] as List<LatLng>).isNotEmpty) {
+      _mapController.move(parcel['points'][0] as LatLng, 15.5);
+    }
+  }
 
   @override
   void dispose() {
@@ -139,45 +240,65 @@ class _MapScreenState extends State<MapScreen> {
     final areaHectares = AreaConverter.squareMetersToHectares(areaM2);
 
     try {
-      // 1. Get or Create active Farm for authenticated user
-      String farmId;
-      final existingFarms = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
-
-      if (existingFarms is List && existingFarms.isNotEmpty) {
-        farmId = existingFarms.first['id'];
-      } else {
-        final newFarm = await supabase.from('farms').insert({
-          'owner_id': user.id,
-          'name': 'Finca El Paraíso',
-          'description': 'Finca principal registrada en iDrone',
-          'location': 'Jutiapa, Guatemala',
-        }).select('id').single();
-        farmId = newFarm['id'];
-      }
-
-      // 2. Construct WKT polygon string
+      // 1. Construct WKT polygon string
       final coords = _polygonPoints.map((p) => '${p.longitude} ${p.latitude}').join(', ');
       final firstPoint = '${_polygonPoints.first.longitude} ${_polygonPoints.first.latitude}';
       final wktPolygon = 'SRID=4326;POLYGON(($coords, $firstPoint))';
 
-      // 3. Insert parcel into fields table with valid farm_id and owner_id
-      await supabase.from('fields').insert({
-        'farm_id': farmId,
-        'name': name,
-        'geometry': wktPolygon,
-        'area_m2': areaM2,
-        'area_ha': areaHectares,
-        'area_manzanas': areaManzanas,
-        'notes': 'Creada desde el mapa interactivo iDrone.',
-      });
+      if (_editingParcelId != null && !_editingParcelId!.startsWith('demo-')) {
+        // UPDATE existing parcel
+        await supabase.from('fields').update({
+          'name': name,
+          'geometry': wktPolygon,
+          'area_m2': areaM2,
+          'area_ha': areaHectares,
+          'area_manzanas': areaManzanas,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', _editingParcelId!);
+      } else {
+        // INSERT new parcel
+        String farmId;
+        final existingFarms = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
+
+        if (existingFarms is List && existingFarms.isNotEmpty) {
+          farmId = existingFarms.first['id'];
+        } else {
+          final newFarm = await supabase.from('farms').insert({
+            'owner_id': user.id,
+            'name': 'Finca El Paraíso',
+            'description': 'Finca principal registrada en iDrone',
+            'location': 'Jutiapa, Guatemala',
+          }).select('id').single();
+          farmId = newFarm['id'];
+        }
+
+        await supabase.from('fields').insert({
+          'farm_id': farmId,
+          'name': name,
+          'geometry': wktPolygon,
+          'area_m2': areaM2,
+          'area_ha': areaHectares,
+          'area_manzanas': areaManzanas,
+          'notes': 'Creada desde el mapa interactivo iDrone.',
+        });
+      }
+
+      await _fetchParcelsFromSupabase();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✓ Parcela "$name" guardada exitosamente en Supabase (${areaManzanas.toStringAsFixed(2)} mz).'),
+          content: Text(_editingParcelId != null
+              ? '✓ Parcela "$name" actualizada exitosamente en Supabase.'
+              : '✓ Parcela "$name" guardada exitosamente en Supabase (${areaManzanas.toStringAsFixed(2)} mz).'),
           backgroundColor: AppColors.emerald,
         ),
       );
+
+      setState(() {
+        _editingParcelId = null;
+        _polygonPoints.clear();
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -275,15 +396,19 @@ class _MapScreenState extends State<MapScreen> {
               PolygonLayer(
                 polygons: [
                   if (_showExistingParcels)
-                    ..._existingParcels.map((parcel) => Polygon(
-                          points: parcel['points'] as List<LatLng>,
-                          color: _showNdviOverlay
-                              ? Colors.green.withValues(alpha: 0.6)
-                              : AppColors.forest.withValues(alpha: 0.35),
-                          borderColor: _showNdviOverlay ? Colors.limeAccent : AppColors.freshGreen,
-                          borderStrokeWidth: 2.5,
-                          isFilled: true,
-                        )),
+                    ..._existingParcels.map((parcel) {
+                      final isBeingEdited = parcel['id']?.toString() == _editingParcelId;
+                      if (isBeingEdited) return null;
+                      return Polygon(
+                        points: parcel['points'] as List<LatLng>,
+                        color: _showNdviOverlay
+                            ? Colors.green.withValues(alpha: 0.6)
+                            : AppColors.forest.withValues(alpha: 0.35),
+                        borderColor: _showNdviOverlay ? Colors.limeAccent : AppColors.freshGreen,
+                        borderStrokeWidth: 2.5,
+                        isFilled: true,
+                      );
+                    }).whereType<Polygon>(),
                   if (_polygonPoints.length >= 3)
                     Polygon(
                       points: _polygonPoints,
@@ -294,6 +419,50 @@ class _MapScreenState extends State<MapScreen> {
                       borderStrokeWidth: 3.0,
                       isFilled: true,
                     ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  if (_showExistingParcels)
+                    ..._existingParcels.map((parcel) {
+                      final points = parcel['points'] as List<LatLng>;
+                      if (points.isEmpty) return null;
+                      final centerLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
+                      final centerLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
+                      final center = LatLng(centerLat, centerLng);
+
+                      return Marker(
+                        point: center,
+                        width: 130,
+                        height: 38,
+                        child: GestureDetector(
+                          onTap: () => _selectParcelForEditing(parcel),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.dark.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.freshGreen, width: 1.2),
+                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.edit_location_alt_rounded, color: AppColors.freshGreen, size: 14),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    parcel['name'] as String,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).whereType<Marker>(),
                 ],
               ),
               MarkerLayer(
