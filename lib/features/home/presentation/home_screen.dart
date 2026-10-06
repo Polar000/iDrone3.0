@@ -300,17 +300,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           fit: BoxFit.cover,
                         ),
                       ),
-                      // Dark Gradient Overlay for Legibility
+                      // Light/Medium Gradient Overlay for Maximum Asset Visibility & Legibility
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                AppColors.dark.withValues(alpha: 0.88),
-                                AppColors.deepForest.withValues(alpha: 0.75),
+                                AppColors.dark.withValues(alpha: 0.15),
+                                AppColors.dark.withValues(alpha: 0.65),
                               ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
                             ),
                           ),
                         ),
@@ -362,12 +362,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.5,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    offset: Offset(0, 1),
+                                    blurRadius: 4,
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 6),
                             const Text(
                               'Servicios agrícolas de precisión con drones de alta capacidad en Oriente y Jutiapa, Guatemala.',
-                              style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.35),
+                              style: TextStyle(
+                                color: AppColors.cream,
+                                fontSize: 13,
+                                height: 1.35,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    offset: Offset(0, 1),
+                                    blurRadius: 3,
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 22),
                             SizedBox(

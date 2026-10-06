@@ -123,7 +123,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ),
           ),
           Container(
-            color: AppColors.dark.withValues(alpha: 0.55),
+            color: AppColors.dark.withValues(alpha: 0.25),
           ),
           Center(
             child: FadeTransition(
