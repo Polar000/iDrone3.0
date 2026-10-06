@@ -26,9 +26,13 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
   // Selected State
   String? _selectedService = 'fumigation';
   String? _selectedCrop = 'Maíz';
-  String? _selectedFarm = 'Finca El Paraíso';
+  String? _selectedFarm;
+  String? _selectedFarmId;
+  String? _selectedFieldId;
   String _parcelName = 'Parcela Norte';
   double _areaM2 = 88060.0; // ~12.6 manzanas
+  List<Map<String, dynamic>> _userParcels = [];
+  bool _isLoadingParcels = false;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _timeWindow = '08:00 AM - 11:00 AM';
   String _paymentMethod = 'card'; // card, banrural, bi, cash
@@ -92,6 +96,53 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     super.initState();
     if (widget.initialService != null && widget.initialService!.isNotEmpty) {
       _selectedService = widget.initialService;
+    }
+    _fetchUserParcelsFromSupabase();
+  }
+
+  Future<void> _fetchUserParcelsFromSupabase() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoadingParcels = true);
+
+    try {
+      final response = await supabase
+          .from('fields')
+          .select('id, name, area_m2, farm_id, farm:farms(id, name)')
+          .order('created_at', ascending: false);
+
+      final List<Map<String, dynamic>> loaded = [];
+      for (final item in response as List) {
+        loaded.add({
+          'id': item['id'],
+          'name': item['name'] ?? 'Parcela sin nombre',
+          'area_m2': (item['area_m2'] as num?)?.toDouble() ?? 0.0,
+          'farm_id': item['farm_id'],
+          'farm_name': item['farm'] != null ? item['farm']['name'] : 'Finca Principal',
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _userParcels = loaded;
+          _isLoadingParcels = false;
+
+          if (_userParcels.isNotEmpty) {
+            final first = _userParcels.first;
+            _selectedFieldId = first['id'];
+            _selectedFarmId = first['farm_id'];
+            _parcelName = first['name'];
+            _selectedFarm = first['farm_name'];
+            _areaM2 = first['area_m2'];
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingParcels = false);
+      }
     }
   }
 
@@ -184,35 +235,43 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
 
     try {
-      // 1. Resolve or Create active Farm UUID for user
+      // 1. Resolve active Farm UUID
       String farmId;
-      final farmRes = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
-      if (farmRes is List && farmRes.isNotEmpty) {
-        farmId = farmRes.first['id'];
+      if (_selectedFarmId != null && _selectedFarmId!.isNotEmpty) {
+        farmId = _selectedFarmId!;
       } else {
-        final newFarm = await supabase.from('farms').insert({
-          'owner_id': user.id,
-          'name': 'Finca El Paraíso',
-          'description': 'Finca principal registrada',
-          'location': 'Jutiapa, Guatemala',
-        }).select('id').single();
-        farmId = newFarm['id'];
+        final farmRes = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
+        if (farmRes is List && farmRes.isNotEmpty) {
+          farmId = farmRes.first['id'];
+        } else {
+          final newFarm = await supabase.from('farms').insert({
+            'owner_id': user.id,
+            'name': 'Finca El Paraíso',
+            'description': 'Finca principal registrada',
+            'location': 'Jutiapa, Guatemala',
+          }).select('id').single();
+          farmId = newFarm['id'];
+        }
       }
 
-      // 2. Resolve or Create active Field UUID for farm
+      // 2. Resolve active Field UUID
       String fieldId;
-      final fieldRes = await supabase.from('fields').select('id').eq('farm_id', farmId).limit(1);
-      if (fieldRes is List && fieldRes.isNotEmpty) {
-        fieldId = fieldRes.first['id'];
+      if (_selectedFieldId != null && _selectedFieldId!.isNotEmpty) {
+        fieldId = _selectedFieldId!;
       } else {
-        final newField = await supabase.from('fields').insert({
-          'farm_id': farmId,
-          'name': _parcelName,
-          'area_m2': _areaM2,
-          'area_ha': AreaConverter.squareMetersToHectares(_areaM2),
-          'area_manzanas': areaManzanas,
-        }).select('id').single();
-        fieldId = newField['id'];
+        final fieldRes = await supabase.from('fields').select('id').eq('farm_id', farmId).limit(1);
+        if (fieldRes is List && fieldRes.isNotEmpty) {
+          fieldId = fieldRes.first['id'];
+        } else {
+          final newField = await supabase.from('fields').insert({
+            'farm_id': farmId,
+            'name': _parcelName,
+            'area_m2': _areaM2,
+            'area_ha': AreaConverter.squareMetersToHectares(_areaM2),
+            'area_manzanas': areaManzanas,
+          }).select('id').single();
+          fieldId = newField['id'];
+        }
       }
 
       // 3. Resolve active Service UUID
@@ -614,12 +673,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
   }
 
   Widget _buildParcelSelectionStep() {
-    final areaManzanas = AreaConverter.squareMetersToManzanas(_areaM2);
-    final durationResult = WorkDurationCalculator.calculateDuration(
-      areaM2: _areaM2,
-      serviceType: _selectedService ?? 'fumigation',
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -633,79 +686,158 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           style: TextStyle(color: AppColors.muted, fontSize: 13),
         ),
         const SizedBox(height: 20),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.emerald, width: 2),
-            boxShadow: AppColors.modernShadow(blur: 16),
+
+        if (_isLoadingParcels)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(color: AppColors.emerald),
+            ),
+          )
+        else if (_userParcels.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline_rounded, color: AppColors.forest),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Aún no tienes parcelas guardadas. Dibuja una nueva parcela en el mapa para continuar.',
+                    style: TextStyle(fontSize: 13, color: AppColors.dark),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          const Text(
+            'Mis parcelas guardadas:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.dark),
           ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.softGreen,
-                          borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 10),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _userParcels.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final parcel = _userParcels[index];
+              final isSelected = _selectedFieldId == parcel['id'];
+              final pAreaMz = AreaConverter.squareMetersToManzanas(parcel['area_m2'] as double);
+              final durationResult = WorkDurationCalculator.calculateDuration(
+                areaM2: parcel['area_m2'] as double,
+                serviceType: _selectedService ?? 'fumigation',
+              );
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.softGreen : AppColors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AppColors.emerald : AppColors.borderLight,
+                    width: isSelected ? 2.5 : 1,
+                  ),
+                  boxShadow: isSelected ? AppColors.modernShadow(color: AppColors.emerald.withValues(alpha: 0.12)) : [],
+                ),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedFieldId = parcel['id'];
+                      _selectedFarmId = parcel['farm_id'];
+                      _parcelName = parcel['name'];
+                      _selectedFarm = parcel['farm_name'];
+                      _areaM2 = parcel['area_m2'];
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.emerald : AppColors.cream,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.map_rounded,
+                                    color: isSelected ? AppColors.white : AppColors.deepForest,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      parcel['name'] as String,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.dark),
+                                    ),
+                                    Text(
+                                      parcel['farm_name'] as String,
+                                      style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.emerald.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${pAreaMz.toStringAsFixed(2)} mz',
+                                style: const TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: const Icon(Icons.map_rounded, color: AppColors.deepForest, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _parcelName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.dark),
+                        if (isSelected) ...[
+                          const Divider(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.timer_outlined, size: 15, color: AppColors.deepForest),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Vuelo est.: ~${durationResult.formattedTotalTime}',
+                                    style: const TextStyle(color: AppColors.deepForest, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '${durationResult.batterySwaps} cambio(s) batería',
+                                style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                              ),
+                            ],
                           ),
-                          Text(_selectedFarm!, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                         ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.emerald.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${areaManzanas.toStringAsFixed(2)} mz',
-                      style: const TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold, fontSize: 13),
+                      ],
                     ),
                   ),
-                ],
-              ),
-              const Divider(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.timer_outlined, size: 16, color: AppColors.deepForest),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tiempo est. vuelo: ~${durationResult.formattedTotalTime}',
-                        style: const TextStyle(color: AppColors.deepForest, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    '${durationResult.batterySwaps} cambio(s) batería',
-                    style: const TextStyle(color: AppColors.muted, fontSize: 11),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              );
+            },
           ),
-        ),
+        ],
+
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
@@ -721,19 +853,20 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 MaterialPageRoute(
                   builder: (context) => MapScreen(
                     isSelectionMode: true,
-                    onPolygonSaved: (points, areaM2, name) {
+                    onPolygonSaved: (points, areaM2, name) async {
                       setState(() {
                         _areaM2 = areaM2;
                         _parcelName = name;
                       });
-                      Navigator.pop(context);
+                      await _fetchUserParcelsFromSupabase();
+                      if (mounted) Navigator.pop(context);
                     },
                   ),
                 ),
               );
             },
-            icon: const Icon(Icons.touch_app_rounded, color: AppColors.emerald),
-            label: const Text('Dibujar / Editar Parcela en el Mapa', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.add_location_alt_rounded, color: AppColors.emerald),
+            label: const Text('Dibujar Nueva Parcela en el Mapa', style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold)),
           ),
         ),
       ],
