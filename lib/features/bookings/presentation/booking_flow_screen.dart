@@ -853,10 +853,11 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 MaterialPageRoute(
                   builder: (context) => MapScreen(
                     isSelectionMode: true,
-                    onPolygonSaved: (points, areaM2, name) async {
+                    onPolygonSaved: (points, areaM2, parcelName, farmName) async {
                       setState(() {
                         _areaM2 = areaM2;
-                        _parcelName = name;
+                        _parcelName = parcelName;
+                        _selectedFarm = farmName;
                       });
                       await _fetchUserParcelsFromSupabase();
                       if (mounted) Navigator.pop(context);

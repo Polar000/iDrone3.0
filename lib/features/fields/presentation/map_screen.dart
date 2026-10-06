@@ -10,7 +10,7 @@ import '../../../core/services/work_duration_calculator.dart';
 
 class MapScreen extends StatefulWidget {
   final bool isSelectionMode;
-  final Function(List<LatLng> polygonPoints, double areaM2, String parcelName)? onPolygonSaved;
+  final Function(List<LatLng> polygonPoints, double areaM2, String parcelName, String farmName)? onPolygonSaved;
 
   const MapScreen({
     super.key,
@@ -25,6 +25,7 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   final LatLng _initialCenter = const LatLng(14.2818, -89.8953);
+  final TextEditingController _farmNameController = TextEditingController(text: 'Finca El Paraíso');
   final TextEditingController _parcelNameController = TextEditingController(text: 'Nueva Parcela');
   bool _isSatellite = true;
   bool _showExistingParcels = true;
@@ -302,6 +303,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    _farmNameController.dispose();
     _parcelNameController.dispose();
     super.dispose();
   }
@@ -359,7 +361,7 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  Future<void> _saveParcelToSupabase(String name, double areaM2) async {
+  Future<void> _saveParcelToSupabase(String farmName, String parcelName, double areaM2) async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
 
@@ -383,10 +385,32 @@ class _MapScreenState extends State<MapScreen> {
       final firstPoint = '${_polygonPoints.first.longitude} ${_polygonPoints.first.latitude}';
       final wktPolygon = 'SRID=4326;POLYGON(($coords, $firstPoint))';
 
+      // 2. Resolve or create Farm by owner_id and specified farmName
+      String farmId;
+      final farmRes = await supabase
+          .from('farms')
+          .select('id')
+          .eq('owner_id', user.id)
+          .eq('name', farmName)
+          .limit(1);
+
+      if (farmRes is List && farmRes.isNotEmpty) {
+        farmId = farmRes.first['id'];
+      } else {
+        final newFarm = await supabase.from('farms').insert({
+          'owner_id': user.id,
+          'name': farmName,
+          'description': 'Finca registrada en iDrone',
+          'location': 'Guatemala',
+        }).select('id').single();
+        farmId = newFarm['id'];
+      }
+
       if (_editingParcelId != null && !_editingParcelId!.startsWith('demo-')) {
         // UPDATE existing parcel
         await supabase.from('fields').update({
-          'name': name,
+          'farm_id': farmId,
+          'name': parcelName,
           'geometry': wktPolygon,
           'area_m2': areaM2,
           'area_ha': areaHectares,
@@ -395,24 +419,9 @@ class _MapScreenState extends State<MapScreen> {
         }).eq('id', _editingParcelId!);
       } else {
         // INSERT new parcel
-        String farmId;
-        final existingFarms = await supabase.from('farms').select('id').eq('owner_id', user.id).limit(1);
-
-        if (existingFarms is List && existingFarms.isNotEmpty) {
-          farmId = existingFarms.first['id'];
-        } else {
-          final newFarm = await supabase.from('farms').insert({
-            'owner_id': user.id,
-            'name': 'Finca El Paraíso',
-            'description': 'Finca principal registrada en iDrone',
-            'location': 'Jutiapa, Guatemala',
-          }).select('id').single();
-          farmId = newFarm['id'];
-        }
-
         await supabase.from('fields').insert({
           'farm_id': farmId,
-          'name': name,
+          'name': parcelName,
           'geometry': wktPolygon,
           'area_m2': areaM2,
           'area_ha': areaHectares,
@@ -427,8 +436,8 @@ class _MapScreenState extends State<MapScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_editingParcelId != null
-              ? '✓ Parcela "$name" actualizada exitosamente en Supabase.'
-              : '✓ Parcela "$name" guardada exitosamente en Supabase (${areaManzanas.toStringAsFixed(2)} mz).'),
+              ? '✓ Parcela "$parcelName" actualizada exitosamente en Supabase.'
+              : '✓ Parcela "$parcelName" ($farmName) guardada exitosamente (${areaManzanas.toStringAsFixed(2)} mz).'),
           backgroundColor: AppColors.emerald,
         ),
       );
@@ -446,7 +455,7 @@ class _MapScreenState extends State<MapScreen> {
           action: SnackBarAction(
             label: 'Reintentar',
             textColor: AppColors.white,
-            onPressed: () => _saveParcelToSupabase(name, areaM2),
+            onPressed: () => _saveParcelToSupabase(farmName, parcelName, areaM2),
           ),
         ),
       );
@@ -767,25 +776,54 @@ class _MapScreenState extends State<MapScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_polygonPoints.length >= 3) ...[
-                    TextField(
-                      controller: _parcelNameController,
-                      style: const TextStyle(color: AppColors.dark, fontWeight: FontWeight.bold),
-                      decoration: InputDecoration(
-                        labelText: 'Nombre de la parcela',
-                        labelStyle: const TextStyle(color: AppColors.deepForest),
-                        prefixIcon: const Icon(Icons.edit_location_alt_outlined, color: AppColors.emerald),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.borderLight),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _farmNameController,
+                            style: const TextStyle(color: AppColors.dark, fontWeight: FontWeight.bold),
+                            decoration: InputDecoration(
+                              labelText: 'Nombre de la Finca',
+                              labelStyle: const TextStyle(color: AppColors.deepForest),
+                              prefixIcon: const Icon(Icons.landscape_rounded, color: AppColors.emerald),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.borderLight),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.emerald, width: 2),
+                              ),
+                            ),
+                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.emerald, width: 2),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _parcelNameController,
+                            style: const TextStyle(color: AppColors.dark, fontWeight: FontWeight.bold),
+                            decoration: InputDecoration(
+                              labelText: 'Nombre Parcela',
+                              labelStyle: const TextStyle(color: AppColors.deepForest),
+                              prefixIcon: const Icon(Icons.edit_location_alt_outlined, color: AppColors.emerald),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.borderLight),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.emerald, width: 2),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 14),
                   ],
@@ -882,14 +920,17 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       onPressed: (_polygonPoints.length >= 3 && !_isSavingToDb)
                           ? () async {
-                              final name = _parcelNameController.text.trim().isEmpty
+                              final farmName = _farmNameController.text.trim().isEmpty
+                                  ? 'Finca El Paraíso'
+                                  : _farmNameController.text.trim();
+                              final parcelName = _parcelNameController.text.trim().isEmpty
                                   ? 'Nueva Parcela'
                                   : _parcelNameController.text.trim();
 
-                              await _saveParcelToSupabase(name, currentAreaM2);
+                              await _saveParcelToSupabase(farmName, parcelName, currentAreaM2);
 
                               if (widget.onPolygonSaved != null) {
-                                widget.onPolygonSaved!(_polygonPoints, currentAreaM2, name);
+                                widget.onPolygonSaved!(_polygonPoints, currentAreaM2, parcelName, farmName);
                               }
                             }
                           : null,
