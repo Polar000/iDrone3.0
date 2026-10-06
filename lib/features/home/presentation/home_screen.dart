@@ -608,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _QuickServiceCard extends StatelessWidget {
+class _QuickServiceCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final String imageKey;
@@ -626,108 +626,153 @@ class _QuickServiceCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final mediaUrl = AppMediaService.instance.getMediaUrl(imageKey);
+  State<_QuickServiceCard> createState() => _QuickServiceCardState();
+}
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.dark,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: AppColors.modernShadow(blur: 14),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Stack(
-          children: [
-            // Background service image
-            Positioned.fill(
-              child: AppMediaService.buildImageWidget(
-                mediaUrl,
-                fit: BoxFit.cover,
+class _QuickServiceCardState extends State<_QuickServiceCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.0,
+      upperBound: 0.06,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleTap() async {
+    await _controller.forward();
+    await _controller.reverse();
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaUrl = AppMediaService.instance.getMediaUrl(widget.imageKey);
+
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: child,
+          );
+        },
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: AppColors.dark,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: AppColors.modernShadow(blur: 14),
+            border: Border.all(color: widget.color.withValues(alpha: 0.4), width: 1.5),
+          ),
+          child: Stack(
+            children: [
+              // Background service image
+              Positioned.fill(
+                child: AppMediaService.buildImageWidget(
+                  mediaUrl,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            // Gradient overlay for contrast
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.dark.withValues(alpha: 0.35),
-                      AppColors.dark.withValues(alpha: 0.85),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+              // Gradient overlay for contrast
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.dark.withValues(alpha: 0.35),
+                        AppColors.dark.withValues(alpha: 0.85),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(12),
+              Padding(
+                padding: const EdgeInsets.all(14.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: widget.color.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(widget.icon, color: AppColors.white, size: 20),
                         ),
-                        child: Icon(icon, color: AppColors.white, size: 20),
-                      ),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withValues(alpha: 0.25),
-                          shape: BoxShape.circle,
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withValues(alpha: 0.25),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.arrow_forward_rounded, color: AppColors.white, size: 16),
                         ),
-                        child: const Icon(Icons.arrow_forward_rounded, color: AppColors.white, size: 16),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: AppColors.white,
-                          letterSpacing: -0.2,
-                          shadows: [
-                            Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 4),
-                          ],
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: AppColors.white,
+                            letterSpacing: -0.2,
+                            shadows: [
+                              Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 4),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.cream,
-                          height: 1.25,
-                          fontWeight: FontWeight.w500,
-                          shadows: [
-                            Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 3),
-                          ],
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.cream,
+                            height: 1.25,
+                            fontWeight: FontWeight.w500,
+                            shadows: [
+                              Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 3),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
