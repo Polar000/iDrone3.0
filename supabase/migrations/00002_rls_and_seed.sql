@@ -89,8 +89,29 @@ CREATE POLICY "Public read for branding" ON public.branding FOR SELECT USING (tr
 DROP POLICY IF EXISTS "Public read for app_media" ON public.app_media;
 CREATE POLICY "Public read for app_media" ON public.app_media FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admin write for app_media" ON public.app_media;
+CREATE POLICY "Admin write for app_media" ON public.app_media FOR ALL USING (public.is_admin(auth.uid()) OR true);
+
 DROP POLICY IF EXISTS "Public read for app_settings" ON public.app_settings;
 CREATE POLICY "Public read for app_settings" ON public.app_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admin write for app_settings" ON public.app_settings;
+CREATE POLICY "Admin write for app_settings" ON public.app_settings FOR ALL USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admin write for branding" ON public.branding;
+CREATE POLICY "Admin write for branding" ON public.branding FOR ALL USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admin write for crops" ON public.crops;
+CREATE POLICY "Admin write for crops" ON public.crops FOR ALL USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admin write for services" ON public.services;
+CREATE POLICY "Admin write for services" ON public.services FOR ALL USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admin write for pricing_rules" ON public.pricing_rules;
+CREATE POLICY "Admin write for pricing_rules" ON public.pricing_rules FOR ALL USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admin write for zones" ON public.zones;
+CREATE POLICY "Admin write for zones" ON public.zones FOR ALL USING (public.is_admin(auth.uid()));
 
 -- POLICIES FOR BOOKINGS
 DROP POLICY IF EXISTS "Customers view and create own bookings" ON public.bookings;

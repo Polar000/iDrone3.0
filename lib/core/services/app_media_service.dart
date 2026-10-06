@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppMediaService extends ChangeNotifier {
   static final AppMediaService instance = AppMediaService._internal();
@@ -30,6 +32,45 @@ class AppMediaService extends ChangeNotifier {
     'crop_otros': 'assets/images/crop_otros.png',
   };
 
+  static const String _prefPrefix = 'idrone_app_media_';
+
+  Future<void> loadMediaFromSupabase() async {
+    // 1. Load local cache first from SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys()) {
+        if (key.startsWith(_prefPrefix)) {
+          final assetKey = key.substring(_prefPrefix.length);
+          final value = prefs.getString(key);
+          if (value != null && value.isNotEmpty) {
+            _mediaRegistry[assetKey] = value;
+          }
+        }
+      }
+      notifyListeners();
+    } catch (_) {}
+
+    // 2. Load remote records from Supabase app_media table
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('app_media')
+          .select('name, url, active')
+          .eq('active', true);
+
+      final prefs = await SharedPreferences.getInstance();
+      for (final item in response as List) {
+        final name = item['name']?.toString();
+        final url = item['url']?.toString();
+        if (name != null && name.isNotEmpty && url != null && url.isNotEmpty) {
+          _mediaRegistry[name] = url;
+          await prefs.setString('$_prefPrefix$name', url);
+        }
+      }
+      notifyListeners();
+    } catch (_) {}
+  }
+
   String getMediaUrl(String key, {String fallback = ''}) {
     if (_mediaRegistry.containsKey(key) && _mediaRegistry[key]!.isNotEmpty) {
       return _mediaRegistry[key]!;
@@ -37,9 +78,46 @@ class AppMediaService extends ChangeNotifier {
     return fallback.isNotEmpty ? fallback : 'assets/images/$key.png';
   }
 
-  void updateMediaRecord(String key, String urlOrPath) {
+  Future<void> updateMediaRecord(String key, String urlOrPath) async {
     _mediaRegistry[key] = urlOrPath;
     notifyListeners();
+
+    // Persist locally in SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('$_prefPrefix$key', urlOrPath);
+    } catch (_) {}
+
+    // Persist in Supabase app_media table
+    try {
+      final supabase = Supabase.instance.client;
+
+      String category = 'general';
+      if (key.contains('logo') || key.contains('splash')) category = 'hero';
+      if (key.contains('hero')) category = 'hero';
+      if (key.contains('service')) category = 'service';
+      if (key.contains('crop')) category = 'crop';
+
+      // Check if record exists
+      final existing = await supabase.from('app_media').select('id').eq('name', key).limit(1);
+
+      if (existing is List && existing.isNotEmpty) {
+        final recordId = existing.first['id'];
+        await supabase.from('app_media').update({
+          'url': urlOrPath,
+          'storage_path': urlOrPath.startsWith('data:') ? 'base64_data_url' : urlOrPath,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', recordId);
+      } else {
+        await supabase.from('app_media').insert({
+          'name': key,
+          'category': category,
+          'url': urlOrPath,
+          'storage_path': urlOrPath.startsWith('data:') ? 'base64_data_url' : urlOrPath,
+          'active': true,
+        });
+      }
+    } catch (_) {}
   }
 
   Map<String, String> getAllMedia() => Map.unmodifiable(_mediaRegistry);
