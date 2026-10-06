@@ -47,7 +47,7 @@ final router = GoRouter(
     }
 
     final isLoginOrRegister = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-    final isPublicRoute = isLoginOrRegister || state.matchedLocation == '/' || state.matchedLocation == '/onboarding';
+    final isPublicRoute = isLoginOrRegister || state.matchedLocation == '/';
 
     // 1. Unauthenticated users trying to access protected routes -> /login
     if (!isAuthenticated && !isPublicRoute) {
