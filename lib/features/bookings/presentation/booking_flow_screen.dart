@@ -222,6 +222,13 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         serviceId = serviceRes.first['id'];
       }
 
+      // 4. Resolve active Crop UUID
+      String? cropId;
+      final cropRes = await supabase.from('crops').select('id').eq('name', _selectedCrop ?? 'Maíz').limit(1);
+      if (cropRes is List && cropRes.isNotEmpty) {
+        cropId = cropRes.first['id'];
+      }
+
       // Parse time window into 24-hour HH:mm:ss for Postgres TIME column
       final rawParts = _timeWindow.split(' - ');
       final startTime24 = _formatTo24HourTime(rawParts.first);
@@ -232,6 +239,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         'farm_id': farmId,
         'field_id': fieldId,
         'service_id': serviceId,
+        'crop_id': cropId,
         'scheduled_date': _selectedDate.toIso8601String().split('T').first,
         'time_window_start': startTime24,
         'time_window_end': endTime24,
