@@ -95,10 +95,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    if (_showIntro) {
-      return _buildBrandIntroSplash();
-    }
-    return _buildOnboardingSplash();
+    return AnimatedCrossFade(
+      duration: const Duration(milliseconds: 600),
+      crossFadeState: _showIntro ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+      firstChild: _buildBrandIntroSplash(),
+      secondChild: _buildOnboardingSplash(),
+    );
   }
 
   Widget _buildBrandIntroSplash() {

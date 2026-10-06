@@ -326,9 +326,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: AppColors.freshGreen.withValues(alpha: 0.22),
+                                    color: AppColors.dark.withValues(alpha: 0.85),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.5)),
+                                    border: Border.all(color: AppColors.freshGreen, width: 1.2),
                                   ),
                                   child: Row(
                                     children: const [
@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       SizedBox(width: 6),
                                       Text(
                                         'Drones Activos • Telemetría RTK',
-                                        style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
@@ -627,74 +627,107 @@ class _QuickServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaUrl = AppMediaService.instance.getMediaUrl(imageKey);
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.dark,
         borderRadius: BorderRadius.circular(22),
         boxShadow: AppColors.modernShadow(blur: 14),
-        border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+        child: Stack(
+          children: [
+            // Background service image
+            Positioned.fill(
+              child: AppMediaService.buildImageWidget(
+                mediaUrl,
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Gradient overlay for contrast
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.dark.withValues(alpha: 0.35),
+                      AppColors.dark.withValues(alpha: 0.85),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: color.withValues(alpha: 0.25)),
-                    ),
-                    child: Icon(icon, color: color, size: 22),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(icon, color: AppColors.white, size: 20),
+                      ),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withValues(alpha: 0.25),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.arrow_forward_rounded, color: AppColors.white, size: 16),
+                      ),
+                    ],
                   ),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(
-                      color: AppColors.softGreen,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.arrow_forward_rounded, color: AppColors.emerald, size: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: AppColors.white,
+                          letterSpacing: -0.2,
+                          shadows: [
+                            Shadow(color: Colors.black80, offset: Offset(0, 1), blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.cream,
+                          height: 1.25,
+                          fontWeight: FontWeight.w500,
+                          shadows: [
+                            Shadow(color: Colors.black80, offset: Offset(0, 1), blurRadius: 3),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                      color: AppColors.dark,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.muted,
-                      height: 1.25,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
