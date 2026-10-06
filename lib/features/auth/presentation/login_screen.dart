@@ -41,13 +41,32 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         if (response.session != null) {
+          final userId = response.user!.id;
+          String role = 'customer';
+
+          try {
+            final profileRes = await supabase.from('profiles').select('role').eq('id', userId).single();
+            if (profileRes is Map && profileRes.containsKey('role')) {
+              role = profileRes['role'] as String;
+            }
+          } catch (_) {}
+
+          if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Bienvenido, ${response.user?.email}'),
               backgroundColor: AppColors.emerald,
             ),
           );
-          context.go('/home');
+
+          if (role == 'operator') {
+            context.go('/operator');
+          } else if (role == 'admin' || role == 'super_admin') {
+            context.go('/admin');
+          } else {
+            context.go('/home');
+          }
         } else {
           // Demo fallback navigation when live backend credentials are offline/unreachable
           _navigateToHomeWithDemoData();

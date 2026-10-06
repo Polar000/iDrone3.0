@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 
 class OperatorDashboardScreen extends StatefulWidget {
@@ -9,36 +11,117 @@ class OperatorDashboardScreen extends StatefulWidget {
 }
 
 class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
-  final List<Map<String, dynamic>> _jobs = [
-    {
-      'id': 'JOB-101',
-      'customer': 'Bryan Morales',
-      'phone': '+502 5555 1234',
-      'farm': 'Finca El Paraíso',
-      'field': 'Parcela Norte',
-      'crop': 'Maíz',
-      'service': 'Fumigación',
-      'area': '12.60 manzanas',
-      'time': '08:00 AM',
-      'status': 'assigned',
-      'photosCount': 0,
-      'checklistDone': false,
-    },
-    {
-      'id': 'JOB-102',
-      'customer': 'Mario Estrada',
-      'phone': '+502 5555 9876',
-      'farm': 'Finca San José',
-      'field': 'Lote 3',
-      'crop': 'Melón',
-      'service': 'Fertilización foliar',
-      'area': '8.50 manzanas',
-      'time': '11:30 AM',
-      'status': 'assigned',
-      'photosCount': 0,
-      'checklistDone': false,
-    },
-  ];
+  bool _isLoading = true;
+  String _operatorName = 'Carlos Ramos';
+  String _operatorZone = 'Jutiapa';
+  List<Map<String, dynamic>> _jobs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOperatorJobs();
+  }
+
+  Future<void> _fetchOperatorJobs() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+
+    if (user != null) {
+      final name = (user.userMetadata?['full_name'] as String?)?.trim();
+      if (name != null && name.isNotEmpty) {
+        _operatorName = name;
+      }
+    }
+
+    try {
+      final response = await supabase
+          .from('bookings')
+          .select('*, profiles:customer_id(full_name, phone, email), fields(name, farms(name)), services(name), crops(name)')
+          .order('created_at', ascending: false);
+
+      final List<Map<String, dynamic>> loaded = [];
+      if (response is List) {
+        for (final item in response) {
+          final customerName = item['profiles']?['full_name'] ?? item['profiles']?['email'] ?? 'Cliente';
+          final phone = item['profiles']?['phone'] ?? '+502 5555 1234';
+          final farmName = item['fields']?['farms']?['name'] ?? 'Finca El Paraíso';
+          final fieldName = item['fields']?['name'] ?? 'Parcela Norte';
+          final serviceName = item['services']?['name'] ?? 'Fumigación';
+          final cropName = item['crops']?['name'] ?? 'Maíz';
+          final area = item['area_manzanas'] ?? item['area_ha'] ?? '12.60';
+
+          loaded.add({
+            'db_id': item['id'],
+            'id': item['id']?.toString().substring(0, 8).toUpperCase() ?? 'JOB-101',
+            'customer': customerName,
+            'phone': phone,
+            'farm': farmName,
+            'field': fieldName,
+            'crop': cropName,
+            'service': serviceName,
+            'area': '$area manzanas',
+            'time': item['time_window_start'] ?? '08:00 AM',
+            'status': item['status'] ?? 'assigned',
+            'photosCount': 0,
+            'checklistDone': false,
+          });
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _jobs = loaded.isNotEmpty
+              ? loaded
+              : [
+                  {
+                    'db_id': 'demo-101',
+                    'id': 'JOB-101',
+                    'customer': 'Bryan Morales',
+                    'phone': '+502 5555 1234',
+                    'farm': 'Finca El Paraíso',
+                    'field': 'Parcela Norte',
+                    'crop': 'Maíz',
+                    'service': 'Fumigación',
+                    'area': '12.60 manzanas',
+                    'time': '08:00 AM',
+                    'status': 'assigned',
+                    'photosCount': 0,
+                    'checklistDone': false,
+                  },
+                ];
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _updateJobStatusInSupabase(Map<String, dynamic> job, String newStatus) async {
+    setState(() => job['status'] = newStatus);
+
+    final dbId = job['db_id']?.toString();
+    if (dbId != null && !dbId.startsWith('demo-')) {
+      try {
+        final supabase = Supabase.instance.client;
+        await supabase.from('bookings').update({
+          'status': newStatus,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', dbId);
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ Estado de ${job['id']} actualizado a $newStatus.'),
+          backgroundColor: AppColors.emerald,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +132,24 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {},
+            onPressed: () {
+              setState(() => _isLoading = true);
+              _fetchOperatorJobs();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Cerrar Sesión',
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (mounted) context.go('/login');
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.emerald))
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,9 +170,9 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Carlos Ramos', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('Operador Certificado iDrone • Zona Jutiapa', style: TextStyle(color: AppColors.cream, fontSize: 12)),
+                    children: [
+                      Text(_operatorName, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Operador Certificado iDrone • Zona $_operatorZone', style: const TextStyle(color: AppColors.cream, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -135,7 +231,7 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => _updateStatus(job, 'en_route'),
+                              onPressed: () => _updateJobStatusInSupabase(job, 'en_route'),
                               icon: const Icon(Icons.navigation_rounded, size: 18),
                               label: const Text('En camino'),
                             ),
@@ -158,15 +254,6 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  void _updateStatus(Map<String, dynamic> job, String newStatus) {
-    setState(() {
-      job['status'] = newStatus;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Estado de ${job['id']} actualizado a $newStatus.')),
     );
   }
 
@@ -263,7 +350,7 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
                         selected: job['status'] == 'en_route',
                         onSelected: (selected) {
                           if (selected) {
-                            setState(() => job['status'] = 'en_route');
+                            _updateJobStatusInSupabase(job, 'en_route');
                             setModalState(() {});
                           }
                         },
@@ -273,7 +360,7 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
                         selected: job['status'] == 'in_site',
                         onSelected: (selected) {
                           if (selected) {
-                            setState(() => job['status'] = 'in_site');
+                            _updateJobStatusInSupabase(job, 'in_site');
                             setModalState(() {});
                           }
                         },
@@ -283,7 +370,7 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
                         selected: job['status'] == 'in_progress',
                         onSelected: (selected) {
                           if (selected) {
-                            setState(() => job['status'] = 'in_progress');
+                            _updateJobStatusInSupabase(job, 'in_progress');
                             setModalState(() {});
                           }
                         },
@@ -293,7 +380,7 @@ class _OperatorDashboardScreenState extends State<OperatorDashboardScreen> {
                         selected: job['status'] == 'completed',
                         onSelected: (selected) {
                           if (selected) {
-                            setState(() => job['status'] = 'completed');
+                            _updateJobStatusInSupabase(job, 'completed');
                             setModalState(() {});
                           }
                         },

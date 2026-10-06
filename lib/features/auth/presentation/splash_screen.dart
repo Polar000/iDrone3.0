@@ -44,7 +44,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     try {
       final session = Supabase.instance.client.auth.currentSession;
       if (session != null) {
-        context.go('/home');
+        final userId = session.user.id;
+        String role = 'customer';
+        try {
+          final profileRes = await Supabase.instance.client.from('profiles').select('role').eq('id', userId).single();
+          if (profileRes is Map && profileRes.containsKey('role')) {
+            role = profileRes['role'] as String;
+          }
+        } catch (_) {}
+
+        if (role == 'operator') {
+          context.go('/operator');
+        } else if (role == 'admin' || role == 'super_admin') {
+          context.go('/admin');
+        } else {
+          context.go('/home');
+        }
         return;
       }
     } catch (_) {}
