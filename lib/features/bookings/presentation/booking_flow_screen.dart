@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
+import '../../../core/utils/polygon_utils.dart';
 import '../../../core/services/pricing_engine.dart';
 import '../../../core/services/work_duration_calculator.dart';
 import '../../../core/services/app_media_service.dart';
@@ -110,7 +111,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     try {
       final response = await supabase
           .from('fields')
-          .select('id, name, area_m2, farm_id, farm:farms(id, name)')
+          .select('id, name, geometry, area_m2, farm_id, farm:farms(id, name)')
           .order('created_at', ascending: false);
 
       final List<Map<String, dynamic>> loaded = [];
@@ -121,6 +122,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           'area_m2': (item['area_m2'] as num?)?.toDouble() ?? 0.0,
           'farm_id': item['farm_id'],
           'farm_name': item['farm'] != null ? item['farm']['name'] : 'Finca Principal',
+          'points': PolygonUtils.parseGeometry(item['geometry']),
         });
       }
 
@@ -766,17 +768,10 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.emerald : AppColors.cream,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.map_rounded,
-                                    color: isSelected ? AppColors.white : AppColors.deepForest,
-                                    size: 20,
-                                  ),
+                                ParcelPolygonThumbnail(
+                                  points: (parcel['points'] as List<LatLng>?) ?? [],
+                                  width: 60,
+                                  height: 60,
                                 ),
                                 const SizedBox(width: 12),
                                 Column(

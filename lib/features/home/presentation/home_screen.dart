@@ -634,8 +634,8 @@ class _QuickServiceCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.white.withValues(alpha: 0.95),
-                      AppColors.white.withValues(alpha: 0.85),
+                      AppColors.white.withValues(alpha: 0.45),
+                      AppColors.white.withValues(alpha: 0.25),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
