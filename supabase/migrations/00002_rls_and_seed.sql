@@ -1,3 +1,24 @@
+-- HELPER FUNCTIONS FOR SECURITY DEFINER TO PREVENT RLS RECURSION
+CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_id AND role IN ('admin', 'super_admin')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET row_security = off;
+
+CREATE OR REPLACE FUNCTION public.is_admin_or_operator(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_id AND role IN ('admin', 'super_admin', 'operator')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET row_security = off;
+
 -- ENABLE ROW LEVEL SECURITY
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.farms ENABLE ROW LEVEL SECURITY;
@@ -22,56 +43,69 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_requests ENABLE ROW LEVEL SECURITY;
 
 -- POLICIES FOR PROFILES
+DROP POLICY IF EXISTS "Profiles viewable by self and admins" ON public.profiles;
 CREATE POLICY "Profiles viewable by self and admins" ON public.profiles
-    FOR SELECT USING (auth.uid() = id OR EXISTS (
-        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
-    ));
+    FOR SELECT USING (auth.uid() = id OR public.is_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles
     FOR INSERT WITH CHECK (auth.uid() = id OR id IS NOT NULL);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 
 -- POLICIES FOR FARMS
+DROP POLICY IF EXISTS "Customers can manage own farms" ON public.farms;
 CREATE POLICY "Customers can manage own farms" ON public.farms
-    FOR ALL USING (owner_id = auth.uid() OR EXISTS (
-        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
-    ));
+    FOR ALL USING (owner_id = auth.uid() OR public.is_admin(auth.uid()));
 
 -- POLICIES FOR FIELDS
+DROP POLICY IF EXISTS "Customers can manage own fields" ON public.fields;
 CREATE POLICY "Customers can manage own fields" ON public.fields
     FOR ALL USING (EXISTS (
         SELECT 1 FROM public.farms WHERE farms.id = fields.farm_id AND farms.owner_id = auth.uid()
-    ) OR EXISTS (
-        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin', 'operator')
-    ));
+    ) OR public.is_admin_or_operator(auth.uid()));
 
 -- POLICIES FOR PUBLIC DATA (crops, services, pricing, zones, availability, branding, app_media)
+DROP POLICY IF EXISTS "Public read for crops" ON public.crops;
 CREATE POLICY "Public read for crops" ON public.crops FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for services" ON public.services;
 CREATE POLICY "Public read for services" ON public.services FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for pricing_rules" ON public.pricing_rules;
 CREATE POLICY "Public read for pricing_rules" ON public.pricing_rules FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for zones" ON public.zones;
 CREATE POLICY "Public read for zones" ON public.zones FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for availability" ON public.availability;
 CREATE POLICY "Public read for availability" ON public.availability FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for branding" ON public.branding;
 CREATE POLICY "Public read for branding" ON public.branding FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for app_media" ON public.app_media;
 CREATE POLICY "Public read for app_media" ON public.app_media FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for app_settings" ON public.app_settings;
 CREATE POLICY "Public read for app_settings" ON public.app_settings FOR SELECT USING (true);
 
 -- POLICIES FOR BOOKINGS
+DROP POLICY IF EXISTS "Customers view and create own bookings" ON public.bookings;
 CREATE POLICY "Customers view and create own bookings" ON public.bookings
     FOR ALL USING (customer_id = auth.uid() OR operator_id IN (
         SELECT id FROM public.operators WHERE user_id = auth.uid()
-    ) OR EXISTS (
-        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
-    ));
+    ) OR public.is_admin(auth.uid()));
 
 -- POLICIES FOR PAYMENTS
+DROP POLICY IF EXISTS "Customers view own payments" ON public.payments;
 CREATE POLICY "Customers view own payments" ON public.payments
-    FOR SELECT USING (customer_id = auth.uid() OR EXISTS (
-        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
-    ));
+    FOR SELECT USING (customer_id = auth.uid() OR public.is_admin(auth.uid()));
 
 -- POLICIES FOR NOTIFICATIONS
+DROP POLICY IF EXISTS "Users manage own notifications" ON public.notifications;
 CREATE POLICY "Users manage own notifications" ON public.notifications
     FOR ALL USING (user_id = auth.uid());
 
