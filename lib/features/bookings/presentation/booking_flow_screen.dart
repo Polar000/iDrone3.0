@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
@@ -766,17 +766,8 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.emerald : AppColors.cream,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.map_rounded,
-                                    color: isSelected ? AppColors.white : AppColors.deepForest,
-                                    size: 20,
-                                  ),
+                                _ParcelPolygonThumbnail(
+                                  isSelected: isSelected,
                                 ),
                                 const SizedBox(width: 12),
                                 Column(
@@ -1406,5 +1397,111 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         ],
       ),
     );
+  }
+}
+
+class _ParcelPolygonThumbnail extends StatelessWidget {
+  final bool isSelected;
+
+  const _ParcelPolygonThumbnail({required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.deepForest : AppColors.dark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isSelected ? AppColors.freshGreen : AppColors.softGreen.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(36, 36),
+            painter: _PolygonThumbnailPainter(
+              fillColor: isSelected
+                  ? AppColors.freshGreen.withValues(alpha: 0.45)
+                  : AppColors.emerald.withValues(alpha: 0.35),
+              strokeColor: isSelected ? AppColors.freshGreen : AppColors.emerald,
+            ),
+          ),
+          Positioned(
+            bottom: 3,
+            right: 3,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.freshGreen : AppColors.emerald,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.gps_fixed_rounded, size: 8, color: AppColors.dark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PolygonThumbnailPainter extends CustomPainter {
+  final Color fillColor;
+  final Color strokeColor;
+
+  _PolygonThumbnailPainter({
+    required this.fillColor,
+    required this.strokeColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path();
+    // Polygon points relative to size
+    path.moveTo(size.width * 0.20, size.height * 0.25);
+    path.lineTo(size.width * 0.75, size.height * 0.15);
+    path.lineTo(size.width * 0.85, size.height * 0.65);
+    path.lineTo(size.width * 0.40, size.height * 0.85);
+    path.lineTo(size.width * 0.15, size.height * 0.60);
+    path.close();
+
+    final fillPaint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+
+    final strokePaint = Paint()
+      ..color = strokeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final vertexPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, strokePaint);
+
+    // Draw vertex dots
+    final points = [
+      Offset(size.width * 0.20, size.height * 0.25),
+      Offset(size.width * 0.75, size.height * 0.15),
+      Offset(size.width * 0.85, size.height * 0.65),
+      Offset(size.width * 0.40, size.height * 0.85),
+      Offset(size.width * 0.15, size.height * 0.60),
+    ];
+
+    for (final pt in points) {
+      canvas.drawCircle(pt, 2.5, vertexPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PolygonThumbnailPainter oldDelegate) {
+    return oldDelegate.fillColor != fillColor || oldDelegate.strokeColor != strokeColor;
   }
 }

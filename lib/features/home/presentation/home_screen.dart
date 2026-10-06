@@ -638,11 +638,9 @@ class _QuickServiceCardState extends State<_QuickServiceCard> with SingleTickerP
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
-      lowerBound: 0.0,
-      upperBound: 0.06,
+      duration: const Duration(milliseconds: 100),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.88).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
