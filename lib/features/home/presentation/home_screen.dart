@@ -300,17 +300,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           fit: BoxFit.cover,
                         ),
                       ),
-                      // Light/Medium Gradient Overlay for Maximum Asset Visibility & Legibility
+                      // Dark Gradient Overlay for Legibility
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                AppColors.dark.withValues(alpha: 0.15),
-                                AppColors.dark.withValues(alpha: 0.65),
+                                AppColors.dark.withValues(alpha: 0.88),
+                                AppColors.deepForest.withValues(alpha: 0.75),
                               ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
                           ),
                         ),
@@ -326,9 +326,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: AppColors.dark.withValues(alpha: 0.85),
+                                    color: AppColors.freshGreen.withValues(alpha: 0.22),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: AppColors.freshGreen, width: 1.2),
+                                    border: Border.all(color: AppColors.freshGreen.withValues(alpha: 0.5)),
                                   ),
                                   child: Row(
                                     children: const [
@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       SizedBox(width: 6),
                                       Text(
                                         'Drones Activos • Telemetría RTK',
-                                        style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: AppColors.freshGreen, fontSize: 11, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
@@ -362,30 +362,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.5,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    offset: Offset(0, 1),
-                                    blurRadius: 4,
-                                  ),
-                                ],
                               ),
                             ),
                             const SizedBox(height: 6),
                             const Text(
                               'Servicios agrícolas de precisión con drones de alta capacidad en Oriente y Jutiapa, Guatemala.',
-                              style: TextStyle(
-                                color: AppColors.cream,
-                                fontSize: 13,
-                                height: 1.35,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    offset: Offset(0, 1),
-                                    blurRadius: 3,
-                                  ),
-                                ],
-                              ),
+                              style: TextStyle(color: AppColors.cream, fontSize: 13, height: 1.35),
                             ),
                             const SizedBox(height: 22),
                             SizedBox(
@@ -608,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _QuickServiceCard extends StatefulWidget {
+class _QuickServiceCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String imageKey;
@@ -626,151 +608,79 @@ class _QuickServiceCard extends StatefulWidget {
   });
 
   @override
-  State<_QuickServiceCard> createState() => _QuickServiceCardState();
-}
-
-class _QuickServiceCardState extends State<_QuickServiceCard> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleTap() async {
-    await _controller.forward();
-    await _controller.reverse();
-    widget.onTap();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final mediaUrl = AppMediaService.instance.getMediaUrl(widget.imageKey);
-
-    return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) => _controller.reverse(),
-      onTapCancel: () => _controller.reverse(),
-      onTap: _handleTap,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: AppColors.dark,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: AppColors.modernShadow(blur: 14),
-            border: Border.all(color: widget.color.withValues(alpha: 0.4), width: 1.5),
-          ),
-          child: Stack(
-            children: [
-              // Background service image
-              Positioned.fill(
-                child: AppMediaService.buildImageWidget(
-                  mediaUrl,
-                  fit: BoxFit.cover,
-                ),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: AppColors.modernShadow(blur: 14),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.2),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            // Dynamic Background Image
+            Positioned.fill(
+              child: AppMediaService.buildImageWidget(
+                imageKey,
+                fit: BoxFit.cover,
               ),
-              // Gradient overlay for contrast
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.dark.withValues(alpha: 0.35),
-                        AppColors.dark.withValues(alpha: 0.85),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.white.withValues(alpha: 0.95),
+                      AppColors.white.withValues(alpha: 0.85),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: widget.color.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(widget.icon, color: AppColors.white, size: 20),
-                        ),
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.25),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.arrow_forward_rounded, color: AppColors.white, size: 16),
-                        ),
-                      ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            color: AppColors.white,
-                            letterSpacing: -0.2,
-                            shadows: [
-                              Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 4),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          widget.subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.cream,
-                            height: 1.25,
-                            fontWeight: FontWeight.w500,
-                            shadows: [
-                              Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 3),
-                            ],
-                          ),
-                        ),
-                      ],
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppColors.dark,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

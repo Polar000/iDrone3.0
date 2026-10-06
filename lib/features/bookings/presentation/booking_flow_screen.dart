@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart' hide Path;
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/area_converter.dart';
-import '../../../core/utils/polygon_utils.dart';
 import '../../../core/services/pricing_engine.dart';
 import '../../../core/services/work_duration_calculator.dart';
 import '../../../core/services/app_media_service.dart';
@@ -111,19 +110,17 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     try {
       final response = await supabase
           .from('fields')
-          .select('id, name, geometry, area_m2, farm_id, farm:farms(id, name)')
+          .select('id, name, area_m2, farm_id, farm:farms(id, name)')
           .order('created_at', ascending: false);
 
       final List<Map<String, dynamic>> loaded = [];
       for (final item in response as List) {
-        final pts = PolygonUtils.parsePolygon(item['geometry']);
         loaded.add({
           'id': item['id'],
           'name': item['name'] ?? 'Parcela sin nombre',
           'area_m2': (item['area_m2'] as num?)?.toDouble() ?? 0.0,
           'farm_id': item['farm_id'],
           'farm_name': item['farm'] != null ? item['farm']['name'] : 'Finca Principal',
-          'points': pts,
         });
       }
 
@@ -769,9 +766,17 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                           children: [
                             Row(
                               children: [
-                                _ParcelPolygonThumbnail(
-                                  isSelected: isSelected,
-                                  points: (parcel['points'] as List<LatLng>?) ?? [],
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.emerald : AppColors.cream,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.map_rounded,
+                                    color: isSelected ? AppColors.white : AppColors.deepForest,
+                                    size: 20,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Column(
@@ -1401,125 +1406,5 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         ],
       ),
     );
-  }
-}
-
-class _ParcelPolygonThumbnail extends StatelessWidget {
-  final bool isSelected;
-  final List<LatLng> points;
-
-  const _ParcelPolygonThumbnail({
-    required this.isSelected,
-    this.points = const [],
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.deepForest : AppColors.dark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isSelected ? AppColors.freshGreen : AppColors.softGreen.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: const Size(36, 36),
-            painter: _PolygonThumbnailPainter(
-              points: points,
-              fillColor: isSelected
-                  ? AppColors.freshGreen.withValues(alpha: 0.45)
-                  : AppColors.emerald.withValues(alpha: 0.35),
-              strokeColor: isSelected ? AppColors.freshGreen : AppColors.emerald,
-            ),
-          ),
-          Positioned(
-            bottom: 3,
-            right: 3,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.freshGreen : AppColors.emerald,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.gps_fixed_rounded, size: 8, color: AppColors.dark),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PolygonThumbnailPainter extends CustomPainter {
-  final List<LatLng> points;
-  final Color fillColor;
-  final Color strokeColor;
-
-  _PolygonThumbnailPainter({
-    required this.points,
-    required this.fillColor,
-    required this.strokeColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    List<Offset> drawOffsets = [];
-
-    if (points.length >= 3) {
-      drawOffsets = PolygonUtils.normalizePoints(points, size, padding: 4.0);
-    } else {
-      // Fallback default points if no GPS geometry exists
-      drawOffsets = [
-        Offset(size.width * 0.20, size.height * 0.25),
-        Offset(size.width * 0.75, size.height * 0.15),
-        Offset(size.width * 0.85, size.height * 0.65),
-        Offset(size.width * 0.40, size.height * 0.85),
-        Offset(size.width * 0.15, size.height * 0.60),
-      ];
-    }
-
-    final path = Path();
-    path.moveTo(drawOffsets.first.dx, drawOffsets.first.dy);
-    for (int i = 1; i < drawOffsets.length; i++) {
-      path.lineTo(drawOffsets[i].dx, drawOffsets[i].dy);
-    }
-    path.close();
-
-    final fillPaint = Paint()
-      ..color = fillColor
-      ..style = PaintingStyle.fill;
-
-    final strokePaint = Paint()
-      ..color = strokeColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final vertexPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(path, fillPaint);
-    canvas.drawPath(path, strokePaint);
-
-    // Draw vertex dots
-    for (final pt in drawOffsets) {
-      canvas.drawCircle(pt, 2.2, vertexPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PolygonThumbnailPainter oldDelegate) {
-    return oldDelegate.fillColor != fillColor ||
-        oldDelegate.strokeColor != strokeColor ||
-        oldDelegate.points != points;
   }
 }
