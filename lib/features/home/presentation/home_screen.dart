@@ -703,7 +703,7 @@ class _QuickServiceCard extends StatelessWidget {
                           color: AppColors.white,
                           letterSpacing: -0.2,
                           shadows: [
-                            Shadow(color: Colors.black80, offset: Offset(0, 1), blurRadius: 4),
+                            Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 4),
                           ],
                         ),
                       ),
@@ -718,7 +718,7 @@ class _QuickServiceCard extends StatelessWidget {
                           height: 1.25,
                           fontWeight: FontWeight.w500,
                           shadows: [
-                            Shadow(color: Colors.black80, offset: Offset(0, 1), blurRadius: 3),
+                            Shadow(color: Colors.black87, offset: Offset(0, 1), blurRadius: 3),
                           ],
                         ),
                       ),
