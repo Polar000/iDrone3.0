@@ -615,58 +615,53 @@ class _QuickServiceCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(22),
         boxShadow: AppColors.modernShadow(blur: 14),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.2),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        child: Stack(
-          children: [
-            // Dynamic Background Image
-            Positioned.fill(
-              child: AppMediaService.buildImageWidget(
-                imageKey,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.white.withValues(alpha: 0.95),
-                      AppColors.white.withValues(alpha: 0.85),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: color.withValues(alpha: 0.25)),
                     ),
                     child: Icon(icon, color: color, size: 22),
                   ),
-                  const SizedBox(height: 10),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: AppColors.softGreen,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_forward_rounded, color: AppColors.emerald, size: 16),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
                     title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                      fontSize: 15,
                       color: AppColors.dark,
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
                     maxLines: 2,
@@ -674,13 +669,14 @@ class _QuickServiceCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.muted,
-                      height: 1.2,
+                      height: 1.25,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
