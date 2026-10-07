@@ -49,11 +49,22 @@ CREATE POLICY "Profiles viewable by self and admins" ON public.profiles
 
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles
-    FOR INSERT WITH CHECK (auth.uid() = id OR id IS NOT NULL);
+    FOR INSERT WITH CHECK (auth.uid() = id OR public.is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
-    FOR UPDATE USING (auth.uid() = id);
+    FOR UPDATE USING (auth.uid() = id OR public.is_admin(auth.uid()));
+
+-- POLICIES FOR OPERATORS
+ALTER TABLE public.operators ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Operators viewable by all authenticated" ON public.operators;
+CREATE POLICY "Operators viewable by all authenticated" ON public.operators
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage operators" ON public.operators;
+CREATE POLICY "Admins can manage operators" ON public.operators
+    FOR ALL USING (public.is_admin(auth.uid()));
 
 -- POLICIES FOR FARMS
 DROP POLICY IF EXISTS "Customers can manage own farms" ON public.farms;
@@ -195,9 +206,12 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'Usuario'),
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'phone', ''),
-    'customer'
+    COALESCE(NEW.raw_user_meta_data->>'role', 'customer')
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    role = EXCLUDED.role;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
