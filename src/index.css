@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #080A0B;
+    color: #F5F6F3;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+/* Custom Scrollbar for sleek industrial feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080A0B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252B2F;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #F5B800;
+}
+
+/* Industrial Grid backdrop animation */
+.industrial-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(37, 43, 47, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 43, 47, 0.25) 1px, transparent 1px);
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  background: rgba(21, 25, 28, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover:hover {
+  border-color: rgba(245, 184, 0, 0.4);
+  box-shadow: 0 0 25px rgba(245, 184, 0, 0.1);
+}
